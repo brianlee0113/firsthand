@@ -37,6 +37,8 @@ final class CreateFlow {
 
   let feedMode = AppSettings.feedMode
   private var mic: PhoneMic?
+  /// Set when the instructor closes the flow: stops the job polling and anything still starting up.
+  private var closed = false
 
   /// Connects the glasses. With the iPhone camera, the iPhone mic listens too (captions, then the recording's
   /// sound); with the demo feed, its narration plays through the glasses' recognizer.
@@ -45,7 +47,10 @@ final class CreateFlow {
     if feedMode == .phoneCamera {
       let mic = PhoneMic()
       mic.onText = { [weak self] text, isFinal in self?.camera.hearFromPhone(text, isFinal: isFinal) }
-      if await mic.start() { self.mic = mic }
+      if await mic.start() {
+        if closed { mic.stop(); return }  // closed while the mic was starting
+        self.mic = mic
+      }
     } else if let source = FeedSource.bundled, let lines = try? await API.captions(sourceVideoId: source.videoId) {
       camera.simulateNarration(lines, feedDuration: source.durationS ?? 0)
     }
@@ -141,12 +146,30 @@ final class CreateFlow {
     return (start, min(duration, start + recordedSeconds))
   }
 
+  /// Stops what the flow started (job polling, the iPhone mic) when the instructor closes it.
+  func cancel() {
+    closed = true
+    _ = mic?.stopFile()
+    mic?.stop()
+    mic = nil
+  }
+
   private func followJob() async {
-    while let current = job, current.status == "queued" || current.status == "running" {
+    var misses = 0
+    while !closed, let current = job, current.status == "queued" || current.status == "running" {
       try? await Task.sleep(for: .milliseconds(400))
-      if let next = try? await API.job(current.id) { job = next }
+      if let next = try? await API.job(current.id) {
+        job = next
+        misses = 0
+      } else {
+        misses += 1
+        if misses >= 30 {  // about 15 s without the server
+          phase = .failed("Lost the Mac server while building. If it comes back, the guide may still appear in Library → My guides.")
+          return
+        }
+      }
     }
-    guard let job else { return }
+    guard !closed, let job else { return }
     if job.status == "error" {
       phase = .failed("Meta AI couldn't build the guide: \(job.error ?? "unknown error")")
       return

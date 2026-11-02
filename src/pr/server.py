@@ -239,6 +239,17 @@ def video(review_id: str) -> FileResponse:
 # ---------------------------------------------------------------------------------------------------------
 
 JOBS = APP / "jobs"
+
+
+@app.on_event("startup")  # not at import: tests import this module and point JOBS at a temp directory first
+def fail_stale_jobs() -> None:
+    """Jobs run in this process: after a restart, any left queued or running will never finish. Say so,
+    so the app's Building screen stops waiting."""
+    for path in JOBS.glob("*.json") if JOBS.exists() else []:
+        job = json.loads(path.read_text())
+        if job.get("status") in ("queued", "running"):
+            job.update(status="error", error="The server restarted while this guide was being built. Record again.")
+            write_json(path, job)
 REACTIONS = APP / "reactions.json"
 PROGRESS = APP / "progress.json"
 STAGES = ("upload", "transcribe", "read_text", "split", "write")
@@ -304,6 +315,8 @@ def run_job(job_id: str) -> None:
             set_stage("upload")
             add_mic_audio(job["video_id"], ROOT / mic)
         guide = build_guide(job, set_stage)
+        if not guide.steps:  # every step was too short to keep: an empty guide would break the app's screens
+            raise ValueError("no steps found in this recording; record the whole job, at least a few seconds per step")
         guides.save(guide, guides.Meta(author=job["author"], author_name=job["author_name"], job_id=job_id))
         job.update(status="done", stages={s: "done" for s in STAGES}, finished=guides.now())
     except Exception as e:  # report any failure to the app instead of leaving the job "running"

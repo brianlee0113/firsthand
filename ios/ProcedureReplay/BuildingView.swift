@@ -4,6 +4,8 @@ import SwiftUI
 
 struct BuildingView: View {
   let flow: CreateFlow
+  /// The server keeps building after this closes; the guide shows up as a draft in Library.
+  let close: () -> Void
 
   private var stages: [String: String] { flow.job?.stages ?? ["upload": flow.phase == .uploading ? "running" : "queued"] }
   private var doneCount: Int { stages.values.filter { $0 == "done" }.count }
@@ -29,6 +31,11 @@ struct BuildingView: View {
       .padding(.vertical, 12)
     }
     .background(Color.canvas)
+    .toolbar {
+      ToolbarItem(placement: .topBarTrailing) {
+        Button(action: close) { Image(systemName: "xmark") }.accessibilityLabel("Close")
+      }
+    }
   }
 
   private var recording: some View {

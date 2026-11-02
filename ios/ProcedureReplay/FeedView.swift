@@ -14,14 +14,16 @@ struct FeedView: View {
   @State private var opened: GuideCard?
   @State private var showSettings = false
   @State private var position = ScrollPosition(edge: .top)
-  @State private var offset: CGFloat = 0
+  /// Only whether the list is scrolled at all: storing the offset itself redrew the whole Feed on every scroll frame.
+  @State private var scrolled = false
   @State private var floating = false  // header copy that slides down when you scroll back up
   @State private var refreshing = false
 
   var body: some View {
     NavigationStack {
       ScrollView {
-        VStack(alignment: .leading, spacing: 14) {
+        // Lazy: only the cards near the screen exist, so opening the Feed doesn't fetch and decode every cover.
+        LazyVStack(alignment: .leading, spacing: 14) {
           header
           if refreshing {
             ProgressView().frame(maxWidth: .infinity).transition(.opacity)
@@ -49,7 +51,7 @@ struct FeedView: View {
       }
       .scrollPosition($position)
       .onScrollGeometryChange(for: CGFloat.self) { $0.contentOffset.y + $0.contentInsets.top } action: { old, new in
-        offset = new
+        if (new > 1) != scrolled { scrolled = new > 1 }
         if new <= 0 {
           floating = false  // the inline header is back in place; the copy sits exactly on top of it
         } else if new - old > 2 {
@@ -88,7 +90,7 @@ struct FeedView: View {
           Text("Feed").font(.largeTitle.bold()).foregroundStyle(Color.ink)
         }
         .buttonStyle(.plain)
-        .accessibilityHint(offset > 1 ? "Scrolls to the top" : "Refreshes the feed")
+        .accessibilityHint(scrolled ? "Scrolls to the top" : "Refreshes the feed")
         Spacer()
         Button { showSettings = true } label: {
           Image(systemName: "gearshape").font(.system(size: 17, weight: .semibold)).frame(width: 40, height: 40)
@@ -109,7 +111,7 @@ struct FeedView: View {
   }
 
   private func titleTapped() {
-    if offset > 1 {
+    if scrolled {
       withAnimation(.snappy) { position.scrollTo(edge: .top) }
     } else if !refreshing {
       Task {
@@ -142,7 +144,7 @@ struct FeedCard: View {
       // A fill-scaled image proposes its own width; keep it inside a fixed frame so the card stays screen-wide.
       Color.track
         .frame(height: 440)
-        .overlay { AsyncImage(url: API.url(card.coverUrl)) { $0.resizable().scaledToFill() } placeholder: { Color.track } }
+        .overlay { RemoteImage(url: API.url(card.coverUrl)) { Color.track } }
         .clipped()
       LinearGradient(stops: [.init(color: .black.opacity(0.35), location: 0), .init(color: .clear, location: 0.3),
                              .init(color: .black.opacity(0.05), location: 0.5), .init(color: .black.opacity(0.85), location: 1)],

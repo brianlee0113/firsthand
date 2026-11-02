@@ -190,7 +190,10 @@ struct CreateFlowView: View {
   /// Called with the published card, or nil when the instructor closes without publishing.
   let finish: (GuideCard?) -> Void
 
-  private func close() { finish(nil) }
+  private func close() {
+    flow.cancel()
+    finish(nil)
+  }
 
   var body: some View {
     NavigationStack {
@@ -204,7 +207,7 @@ struct CreateFlowView: View {
       case .record:
         RecordView(flow: flow, close: close)
       case .uploading, .building:
-        BuildingView(flow: flow)
+        BuildingView(flow: flow, close: close)
       case .draft:
         DraftView(flow: flow, close: close)
       case .failed(let message):

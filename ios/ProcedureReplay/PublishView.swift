@@ -79,16 +79,16 @@ struct PublishView: View {
   }
 
   private func cover(_ guide: Guide) -> some View {
-    let step = guide.steps[guide.steps.count / 2]  // the server's guide cover is the middle step's frame
+    let step = guide.steps.isEmpty ? nil : guide.steps[guide.steps.count / 2]  // the cover is the middle step's frame
     return HStack(spacing: 12) {
-      AsyncImage(url: API.url("/guides/\(guide.guideId)/cover.jpg")) { $0.resizable().scaledToFill() } placeholder: {
-        Color.track
-      }
+      RemoteImage(url: API.url("/guides/\(guide.guideId)/cover.jpg"), maxPixel: 300) { Color.track }
       .frame(width: 84, height: 84)
       .clipShape(RoundedRectangle(cornerRadius: 18))
       VStack(alignment: .leading, spacing: 4) {
         Text("Cover").font(.caption).foregroundStyle(Color.inkSecondary)
-        Text("Frame from step \(step.index), \(step.title)").font(.subheadline.weight(.semibold)).foregroundStyle(Color.ink)
+        if let step {
+          Text("Frame from step \(step.index), \(step.title)").font(.subheadline.weight(.semibold)).foregroundStyle(Color.ink)
+        }
       }
     }
   }

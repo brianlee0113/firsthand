@@ -79,11 +79,7 @@ struct StepRow: View {
 
   var body: some View {
     HStack(spacing: 12) {
-      AsyncImage(url: step.coverUrl.map(API.url)) { image in
-        image.resizable().scaledToFill()
-      } placeholder: {
-        Color.track
-      }
+      RemoteImage(url: step.coverUrl.map(API.url), maxPixel: 300) { Color.track }
       .frame(width: 76, height: 64)
       .clipShape(RoundedRectangle(cornerRadius: 14))
       VStack(alignment: .leading, spacing: 3) {

@@ -80,11 +80,14 @@ final class LoopingPlayer {
     statusTask?.cancel()
     statusTask = Task { [weak self] in
       // Clips are usually on the phone already (ClipCache); a streamed fallback can take a moment.
-      for _ in 0..<300 {
+      for _ in 0..<600 {
         guard let self, !Task.isCancelled else { return }
         if let current = self.player.currentItem {
           if current.status == .readyToPlay {
-            self.duration = (try? await current.asset.load(.duration).seconds) ?? 0
+            let duration = (try? await current.asset.load(.duration).seconds) ?? 0
+            // The trainee may have moved on while the duration loaded; don't mark the next clip ready.
+            guard !Task.isCancelled else { return }
+            self.duration = duration
             self.isReady = true
             return
           }
@@ -95,6 +98,9 @@ final class LoopingPlayer {
         }
         try? await Task.sleep(for: .milliseconds(100))
       }
+      // A minute without the clip: say so instead of spinning forever.
+      guard let self, !Task.isCancelled else { return }
+      self.failed = "The clip took too long to load. Check the connection to the Mac, then try again."
     }
     player.play()
   }

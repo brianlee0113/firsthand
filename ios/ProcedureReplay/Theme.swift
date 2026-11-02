@@ -238,3 +238,10 @@ func withoutAnimation(_ body: () -> Void) {
   t.disablesAnimations = true
   withTransaction(t, body)
 }
+
+/// Evaluates `content` in a body of its own. Fast-changing observed values read inside it (a clip's position,
+/// 30 times a second) then redraw just this piece instead of the whole screen around it.
+struct Live<Content: View>: View {
+  @ViewBuilder let content: () -> Content
+  var body: some View { content() }
+}

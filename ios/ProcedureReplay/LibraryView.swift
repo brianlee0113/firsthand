@@ -198,7 +198,7 @@ struct ContinueCard: View {
   var body: some View {
     Button(action: open) {
       HStack(spacing: 12) {
-        AsyncImage(url: API.url(card.coverUrl)) { $0.resizable().scaledToFill() } placeholder: { Color.track }
+        RemoteImage(url: API.url(card.coverUrl), maxPixel: 300) { Color.track }
           .frame(width: 72, height: 72).clipShape(RoundedRectangle(cornerRadius: 16))
         VStack(alignment: .leading, spacing: 4) {
           Eyebrow(text: "Continue · step \(card.step ?? 1) of \(card.steps)")
@@ -279,7 +279,7 @@ struct CoverTile: View {
     Color.track
       .aspectRatio(115.0 / 150.0, contentMode: .fit)
       .overlay {
-        AsyncImage(url: API.url(card.coverUrl)) { $0.resizable().scaledToFill() } placeholder: { Color.track }
+        RemoteImage(url: API.url(card.coverUrl), maxPixel: 700) { Color.track }
       }
       .overlay {
         LinearGradient(stops: [.init(color: .clear, location: 0.45), .init(color: .black.opacity(0.7), location: 1)],

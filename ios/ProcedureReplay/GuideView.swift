@@ -142,11 +142,7 @@ struct GuideView: View {
         .frame(maxWidth: .infinity)
         .frame(height: 340)
         .overlay {
-          AsyncImage(url: API.url("/guides/\(guide.guideId)/cover.jpg")) { image in
-            image.resizable().scaledToFill()
-          } placeholder: {
-            Color.track
-          }
+          RemoteImage(url: API.url("/guides/\(guide.guideId)/cover.jpg")) { Color.track }
         }
         .clipped()
       .overlay {

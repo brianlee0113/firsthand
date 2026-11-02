@@ -154,11 +154,11 @@ struct StepPlayerView: View {
           .allowsHitTesting(false)
       }
       VStack(spacing: 10) {
-        progress
+        Live { progress }  // reads the clip position: only this bar redraws 30 times a second
         topControls
         if lensMode.isOn || lensMode.connecting || lensMode.error != nil { lensStatus }
         Spacer()
-        seekBar.padding(.horizontal, -16)  // edge to edge, outside the controls' side margins
+        Live { seekBar }.padding(.horizontal, -16)  // edge to edge, outside the controls' side margins
           // In the corner above the bar, like Instagram. Drawn over the scrub strip, so a tap on it never seeks or pauses.
           .overlay(alignment: .bottomTrailing) {
             if !scrubbing { soundButton.padding(.trailing, -6).padding(.bottom, 6) }
@@ -390,7 +390,7 @@ struct StepPlayerView: View {
       // Solid: the sheet overlaps the video, and the translucent panel let it show through as a gray band.
       UnevenRoundedRectangle(topLeadingRadius: sheetRadius, topTrailingRadius: sheetRadius).fill(Color.white)
         .ignoresSafeArea(edges: .bottom)
-        .overlay(alignment: .top) { clipBar }
+        .overlay(alignment: .top) { Live { clipBar } }
     }
     .offset(y: -sheetOverlap)
     .padding(.bottom, -sheetOverlap)

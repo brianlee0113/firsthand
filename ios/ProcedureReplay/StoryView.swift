@@ -48,7 +48,10 @@ struct StoryFeedView: View {
     .ignoresSafeArea()
     .background(Color.black)
     .statusBarHidden()  // the story bar takes its place, as in Instagram
-    .onDisappear { try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation) }
+    .onDisappear {
+      try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
+      UIApplication.shared.isIdleTimerDisabled = false  // the pages keep the screen awake only while the story is up
+    }
     .authorProfiles()
   }
 
@@ -77,7 +80,8 @@ private struct StoryPage: View {
   @State private var stepsOpen = false
   /// The summary fills its blue segment and moves on to step 1 by itself, once per guide.
   /// After that (or after the trainee leaves it), coming back to it stays put to be read.
-  @State private var summaryProgress = 0.0
+  /// The clock's progress lives in its own object so only the story bar redraws as it fills, not the whole page.
+  @State private var summaryClock = SummaryClock()
   @State private var summaryPaused = false
   @State private var summarySeen = false
   @State private var summaryTask: Task<Void, Never>?
@@ -171,7 +175,7 @@ private struct StoryPage: View {
     stepsOpen = false
     summaryPaused = false
     if page != 0 { summarySeen = true }
-    if !summarySeen { summaryProgress = 0 }
+    if !summarySeen { summaryClock.progress = 0 }
     guard isActive, let response = model.response else {
       player.clear()
       if !isActive { lensMode.turnOff() }
@@ -231,8 +235,8 @@ private struct StoryPage: View {
         try? await Task.sleep(for: .seconds(tick))
         guard !Task.isCancelled, page == 0 else { return }
         if held || stepsOpen || summaryPaused || showSteps { continue }
-        summaryProgress = min(summaryProgress + tick / Self.summarySeconds, 1)
-        if summaryProgress >= 1 {
+        summaryClock.progress = min(summaryClock.progress + tick / Self.summarySeconds, 1)
+        if summaryClock.progress >= 1 {
           summarySeen = true
           page = 1
           return
@@ -250,10 +254,7 @@ private struct StoryPage: View {
     let images = await withTaskGroup(of: (Int, UIImage?).self) { group in
       for (i, step) in picked.enumerated() {
         guard let path = step.coverUrl else { continue }
-        group.addTask {
-          guard let (data, _) = try? await URLSession.shared.data(from: API.url(path)) else { return (i, nil) }
-          return (i, UIImage(data: data))
-        }
+        group.addTask { (i, await ImageStore.shared.image(API.url(path), maxPixel: 1280)) }
       }
       var found: [(Int, UIImage)] = []
       for await (i, image) in group { if let image { found.append((i, image)) } }
@@ -308,7 +309,8 @@ private struct StoryPage: View {
                      startPoint: .top, endPoint: .bottom)
         .allowsHitTesting(false)
       VStack(alignment: .leading, spacing: 12) {
-        storyBar
+        StoryBar(stepCount: stepCount, page: page, isDone: isDone, summarySeen: summarySeen,
+                 player: player, clock: summaryClock)
         header(response)
         if lensMode.isOn || lensMode.connecting || lensMode.error != nil { lensStatus }
         Spacer(minLength: 0)
@@ -353,7 +355,7 @@ private struct StoryPage: View {
     } onPressingChanged: { pressing in
       if !pressing, held {
         held = false
-        if step != nil { player.player.play() }
+        if step != nil, !player.isPaused { player.player.play() }  // a clip paused with a tap stays paused
       }
     }
     .accessibilityAction(named: "Next page") { next() }
@@ -376,35 +378,11 @@ private struct StoryPage: View {
       .clipped()
     } else {
       Color.clear.overlay {
-        AsyncImage(url: API.url("/guides/\(guideId)/cover.jpg")) { $0.resizable().scaledToFill() } placeholder: { Color.black }
+        RemoteImage(url: API.url("/guides/\(guideId)/cover.jpg")) { Color.black }
       }
       .clipped()
       .overlay { if isDone { Color.black.opacity(0.45) } }
     }
-  }
-
-  /// One segment for the summary and one per step; the current step fills as its clip plays.
-  private var storyBar: some View {
-    HStack(spacing: 4) {
-      ForEach(0...stepCount, id: \.self) { i in
-        // The summary is a different kind of page from the steps, so its segment is AI blue, not white.
-        let tint = i == 0 ? Color(red: 0.45, green: 0.62, blue: 1) : .white
-        Capsule().fill(tint.opacity(0.35))
-          .overlay(alignment: .leading) {
-            GeometryReader { g in Capsule().fill(tint).frame(width: g.size.width * fill(i)) }
-          }
-          .frame(height: 3)
-      }
-    }
-    .accessibilityHidden(true)
-  }
-
-  private func fill(_ i: Int) -> CGFloat {
-    if isDone || i < page { return 1 }
-    if i > page { return 0 }
-    if page == 0 { return summarySeen ? 1 : CGFloat(summaryProgress) }
-    guard player.isReady, player.duration > 0 else { return 0 }
-    return CGFloat(min(max(player.elapsed / player.duration, 0), 1))
   }
 
   private func header(_ response: GuideResponse) -> some View {
@@ -666,5 +644,45 @@ private struct QuoteView: View {
     .allowsHitTesting(cut || open)
     .accessibilityLabel("Instructor: \(quote.text)")
     .accessibilityHint(cut && !open ? "Shows the whole quote" : "")
+  }
+}
+
+@Observable
+@MainActor
+private final class SummaryClock {
+  var progress = 0.0
+}
+
+/// One segment for the summary and one per step; the current step fills as its clip plays.
+/// Its own view: the clip position changes 30 times a second, and only this bar should redraw for it.
+private struct StoryBar: View {
+  let stepCount: Int
+  let page: Int
+  let isDone: Bool
+  let summarySeen: Bool
+  let player: LoopingPlayer
+  let clock: SummaryClock
+
+  var body: some View {
+    HStack(spacing: 4) {
+      ForEach(0...stepCount, id: \.self) { i in
+        // The summary is a different kind of page from the steps, so its segment is AI blue, not white.
+        let tint = i == 0 ? Color(red: 0.45, green: 0.62, blue: 1) : .white
+        Capsule().fill(tint.opacity(0.35))
+          .overlay(alignment: .leading) {
+            GeometryReader { g in Capsule().fill(tint).frame(width: g.size.width * fill(i)) }
+          }
+          .frame(height: 3)
+      }
+    }
+    .accessibilityHidden(true)
+  }
+
+  private func fill(_ i: Int) -> CGFloat {
+    if isDone || i < page { return 1 }
+    if i > page { return 0 }
+    if page == 0 { return summarySeen ? 1 : CGFloat(clock.progress) }
+    guard player.isReady, player.duration > 0 else { return 0 }
+    return CGFloat(min(max(player.elapsed / player.duration, 0), 1))
   }
 }

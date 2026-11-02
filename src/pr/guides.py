@@ -282,14 +282,20 @@ def precut(guide: Guide, indices: list[int] | None = None) -> None:
 
 def cover(guide: Guide, index: int | None = None) -> Path:
     """JPEG of the step's cover frame; with no index, the guide cover (the middle step's frame)."""
+    if not guide.steps:
+        raise FileNotFoundError(f"{guide.guide_id} has no steps")
     step = guide.steps[len(guide.steps) // 2] if index is None else next(s for s in guide.steps if s.index == index)
-    out = guide_dir(guide.guide_id) / "covers" / f"{step.index:02d}_{step.cover_s:.2f}.jpg"
+    # q80: about half the bytes of OpenCV's default 95 with no visible difference on a phone (the app decodes
+    # each cover; smaller files come through the tunnel faster). The suffix makes old q95 files regenerate.
+    out = guide_dir(guide.guide_id) / "covers" / f"{step.index:02d}_{step.cover_s:.2f}_q80.jpg"
     if not out.exists():
         frame = grab_frame(source_path(guide), step.cover_s)
         if frame is None:
             raise FileNotFoundError(f"no frame at {step.cover_s}s in {guide.source_video_id}")
         out.parent.mkdir(parents=True, exist_ok=True)
-        cv2.imwrite(str(out), frame)
+        tmp = out.with_suffix(f".{os.getpid()}.{threading.get_ident()}.tmp.jpg")  # a reader never sees half a file
+        cv2.imwrite(str(tmp), frame, [cv2.IMWRITE_JPEG_QUALITY, 80])
+        tmp.replace(out)
     return out
 
 
