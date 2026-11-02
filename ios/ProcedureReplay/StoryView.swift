@@ -82,13 +82,13 @@ private struct StoryPage: View {
   @State private var summarySeen = false
   @State private var summaryTask: Task<Void, Never>?
   private static let summarySeconds = 4.0
-  /// Behind the summary, step covers flip like a Shorts preview: up to 7 picked evenly from first to last,
-  /// 0.6 s each, so the whole job goes by in about the 4 seconds the summary stays up.
+  /// Behind the summary, step covers flip like a Shorts preview: up to 4 picked evenly from first to last,
+  /// 1 s each, so the whole job goes by in the 4 seconds the summary stays up.
   @State private var flipFrames: [UIImage] = []
   @State private var flipIndex = 0
   @State private var flipTask: Task<Void, Never>?
-  private static let flipSeconds = 0.6
-  private static let flipMax = 7
+  private static let flipSeconds = 1.0
+  private static let flipMax = 4
   @State private var showSteps = false
   @State private var lensMode = LensMode()
   @Environment(\.openAuthor) private var openAuthor
