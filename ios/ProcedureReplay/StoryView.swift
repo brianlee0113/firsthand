@@ -92,7 +92,8 @@ private struct StoryPage: View {
   @State private var model: GuideModel
   /// 0 = summary, 1…n = steps, n + 1 = done.
   @State private var page: Int
-  @State private var player = LoopingPlayer()
+  @State private var playerBox = Lazy { LoopingPlayer() }
+  private var player: LoopingPlayer { playerBox.value }
   @State private var loadTask: Task<Void, Never>?
   @State private var held = false
   /// The instructor quote, opened to its full text (Figma "Instructor quote", option A). The clip keeps playing.
@@ -117,7 +118,8 @@ private struct StoryPage: View {
   @State private var showSteps = false
   /// A full-screen cover (Steps list, an author's profile) is over this page: it disappears without leaving the story.
   @State private var covered = false
-  @State private var lensMode = LensMode()
+  @State private var lensBox = Lazy { LensMode() }
+  private var lensMode: LensMode { lensBox.value }
   @Environment(\.openAuthor) private var openAuthor
 
   init(guideId: String, startPage: Int, isActive: Bool, hasNext: Bool, soundOn: Binding<Bool?>, close: @escaping () -> Void) {
@@ -180,7 +182,7 @@ private struct StoryPage: View {
       flipTask?.cancel()
       player.clear()
       // Covered by the Steps list or a profile: keep the glasses on, the trainee comes back to this guide.
-      if !covered { lensMode.turnOff() }
+      if !covered { lensBox.existing?.turnOff() }
     }
     .onAppear { covered = false }
     .fullScreenCover(isPresented: $showSteps) {
@@ -205,7 +207,12 @@ private struct StoryPage: View {
     // and the clip waits for the trainee to come back (`.task` runs sync again on reappear).
     guard isActive, !covered, let response = model.response else {
       player.clear()
-      if !isActive { lensMode.turnOff() }
+      if !isActive {
+        lensBox.existing?.turnOff()
+        // A guide swiped past lets go of its decoded flip covers; ImageStore still has them for a return.
+        flipFrames = []
+        flipIndex = 0
+      }
       return
     }
     player.activateAudio()
@@ -221,7 +228,7 @@ private struct StoryPage: View {
       if page == 0, let first = response.guide.steps.first {
         prefetch(first)
         if !summarySeen { runSummaryTimer() }
-        runFlip()
+        if flipFrames.isEmpty { Task { await loadFlipFrames() } } else { runFlip() }
       }
     }
   }

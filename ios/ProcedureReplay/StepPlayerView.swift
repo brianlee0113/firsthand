@@ -5,8 +5,10 @@ import SwiftUI
 struct StepPlayerView: View {
   let guide: Guide
   @State private var index: Int
-  @State private var player = LoopingPlayer()
-  @State private var lensMode = LensMode()
+  @State private var playerBox = Lazy { LoopingPlayer() }
+  private var player: LoopingPlayer { playerBox.value }
+  @State private var lensBox = Lazy { LensMode() }
+  private var lensMode: LensMode { lensBox.value }
   @State private var loadTask: Task<Void, Never>?
   @State private var scrubbing = false
   @State private var scrubFraction = 0.0

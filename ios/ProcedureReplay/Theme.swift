@@ -245,3 +245,23 @@ struct Live<Content: View>: View {
   @ViewBuilder let content: () -> Content
   var body: some View { content() }
 }
+
+/// Holds a view's heavy object (a player, the glasses controller) and makes it on first use. `@State` evaluates
+/// its initial value on every init of the view, and a story page is re-initialised on every swipe; each time
+/// an AVQueuePlayer or a glasses selector was built and thrown away on the main thread. Only this box is.
+@MainActor
+final class Lazy<Value> {
+  private let make: () -> Value
+  private var made: Value?
+  init(_ make: @escaping () -> Value) { self.make = make }
+
+  var value: Value {
+    if let made { return made }
+    let v = make()
+    made = v
+    return v
+  }
+
+  /// Only if it was made already: turning something off shouldn't create it.
+  var existing: Value? { made }
+}
