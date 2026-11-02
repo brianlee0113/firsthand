@@ -118,6 +118,16 @@ if guides.source_path(guides.load(gid)[0]).exists():
 else:
     print("skipped clip check: drill-bit reference video not downloaded")
 
+# One broken guide folder (half written, or hand-edited) doesn't take the Feed, Library or a profile down.
+broken = guides.GUIDES / "g_broken"
+broken.mkdir()
+(broken / "guide.json").write_text("{not json")
+assert api.get("/feed", headers=MIN).status_code == 200
+assert api.get("/library", headers=LUIS).status_code == 200
+assert api.get("/users/luis", headers=MIN).status_code == 200
+(broken / "guide.json").unlink()
+broken.rmdir()
+
 server.worker.shutdown(wait=True)
 for p in server.UPLOADS.glob("*"):
     p.unlink()

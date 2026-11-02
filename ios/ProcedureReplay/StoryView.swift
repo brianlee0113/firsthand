@@ -17,6 +17,8 @@ struct StoryFeedView: View {
   /// while the tapped guide's summary sat still.
   @State private var current: String?
   @State private var position: ScrollPosition
+  @State private var visible: String?
+  @State private var scrolling = false
   /// Nil until the trainee touches the sound button; until then each guide follows its own default
   /// (on for guides built with narration).
   @State private var soundOn: Bool?
@@ -49,8 +51,15 @@ struct StoryFeedView: View {
     }
     .scrollTargetBehavior(.paging)
     .scrollPosition($position)
-    .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.6) { visible in
-      if let id = visible.first, id != current { current = id }
+    // The page that's mostly on screen becomes the playing one once the swipe settles: switching while the
+    // finger is still down restarted the clip (and turned the glasses off) on a drag that went back.
+    .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.6) { ids in
+      visible = ids.first
+      if !scrolling { commitVisible() }
+    }
+    .onScrollPhaseChange { _, phase in
+      scrolling = phase != .idle
+      if !scrolling { commitVisible() }
     }
     .scrollIndicators(.hidden)
     .ignoresSafeArea()
@@ -65,6 +74,10 @@ struct StoryFeedView: View {
 
   private func close() {
     if let slideBack { slideBack() } else { dismiss() }
+  }
+
+  private func commitVisible() {
+    if let visible, visible != current { current = visible }
   }
 }
 

@@ -18,6 +18,8 @@ struct FeedView: View {
   @State private var scrolled = false
   @State private var floating = false  // header copy that slides down when you scroll back up
   @State private var refreshing = false
+  /// Counts load() calls; a reply is used only if no newer load started after it.
+  @State private var loads = 0
 
   var body: some View {
     NavigationStack {
@@ -123,17 +125,21 @@ struct FeedView: View {
   }
 
   private func load() async {
+    loads += 1
+    let mine = loads
     let category = selected
+    // Several reloads run outside the chip's task (pull, title tap, Settings, closing a story). Only the newest
+    // one, still for the chip on screen, may change the list or show an error.
+    func current() -> Bool { mine == loads && category == selected }
     do {
       let result = try await API.feed(category: category)
-      // Several reloads run outside the chip's task (pull, title tap, Settings, closing a story):
-      // one that started for another category must not overwrite the chip's list.
-      guard category == selected else { return }
+      guard current() else { return }
       cards = result
       error = nil
       loaded = true
       if categories.isEmpty { categories = (try? await API.categories()) ?? [] }
     } catch {
+      guard current(), !error.isCancellation else { return }  // a chip tapped mid-load cancels it: not an error
       self.error = "Start the server on your Mac (uv run uvicorn pr.server:app --port 8000), then try again. Looking for it at \(API.base.absoluteString)."
     }
   }

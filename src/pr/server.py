@@ -639,8 +639,7 @@ def set_progress(guide_id: str, body: Progress, user: str = USER) -> dict:
 @app.get("/feed")
 def feed(category: guides.Category | None = None, user: str = USER) -> list[dict]:
     cards = []
-    for gid in guides.all_ids():
-        guide, meta = guides.load(gid)
+    for gid, guide, meta in guides.all_guides():
         if meta.visibility == "public" and (category is None or guide.category == category):
             cards.append(card(guide, meta, user))
     return sorted(cards, key=lambda c: c["published_at"] or "", reverse=True)
@@ -659,8 +658,7 @@ def library(user: str = USER) -> dict:
     out = {"continue": [], "saved": [], "liked": [], "mine": []}
     learners: set[str] = set()
     likes = 0
-    for gid in guides.all_ids():
-        guide, meta = guides.load(gid)
+    for gid, guide, meta in guides.all_guides():
         if meta.visibility == "draft" and meta.author != user:
             continue
         c = card(guide, meta, user)
@@ -687,8 +685,7 @@ def user_profile(user_id: str, user: str = USER) -> dict:
     reactions = read_json(REACTIONS, {})
     all_progress = read_json(PROGRESS, {})
     name, role, cards, learners, likes = None, "", [], set(), 0
-    for gid in guides.all_ids():
-        guide, meta = guides.load(gid)
+    for gid, guide, meta in guides.all_guides():
         if meta.author != user_id or meta.visibility == "draft":
             continue
         name, role = name or meta.author_name, role or meta.author_role

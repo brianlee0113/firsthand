@@ -36,10 +36,14 @@ final class ImageStore: @unchecked Sendable {
       return t
     }
     let image = await task.value
-    lock.withLock { inFlight[k] = nil }
-    if let image {
-      let cost = Int(image.size.width * image.size.height * image.scale * image.scale * 4)
-      cache.setObject(image, forKey: k as NSString, cost: cost)
+    lock.withLock {
+      // Cached before it leaves inFlight, so a caller arriving now finds one or the other, never neither.
+      if let image {
+        let cost = Int(image.size.width * image.size.height * image.scale * image.scale * 4)
+        cache.setObject(image, forKey: k as NSString, cost: cost)
+      }
+      // Only this request's entry: a slow waiter mustn't drop a newer download of the same image.
+      if inFlight[k] == task { inFlight[k] = nil }
     }
     return image
   }

@@ -331,3 +331,10 @@ struct CaptionLine: Decodable {
   let endS: Double
   let text: String
 }
+
+extension Error {
+  /// A request dropped because its view moved on (a new chip, a page scrolled away): not something to show.
+  var isCancellation: Bool {
+    self is CancellationError || (self as? URLError)?.code == .cancelled
+  }
+}

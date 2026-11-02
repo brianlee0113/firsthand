@@ -10,6 +10,7 @@ Until the B2 pipeline exists, `from_checklist` builds a contract guide from a co
 """
 
 import json
+import logging
 import os
 import re
 import threading
@@ -26,6 +27,8 @@ from pr.frames import grab_frame, probe, trim
 from pr.license_check import ROOT, find_row, local_path
 from pr.steps import CHECKLISTS, load_tasks
 from pr.transcribe import spoken
+
+log = logging.getLogger(__name__)
 
 APP = RESULTS / "app"
 GUIDES = APP / "guides"
@@ -145,8 +148,9 @@ def save(guide: Guide, meta: Meta) -> None:
     d = guide_dir(guide.guide_id)
     if not (d / "model.json").exists():
         write_json(d / "model.json", guide.model_dump())
-    write_json(d / "guide.json", guide.model_dump())
+    # meta.json first: listings find guides by guide.json, so a guide is never listed before its meta exists.
     write_json(d / "meta.json", meta.model_dump())
+    write_json(d / "guide.json", guide.model_dump())
 
 
 def load(guide_id: str) -> tuple[Guide, Meta]:
@@ -159,6 +163,18 @@ def load(guide_id: str) -> tuple[Guide, Meta]:
 
 def all_ids() -> list[str]:
     return sorted(p.parent.name for p in GUIDES.glob("*/guide.json")) if GUIDES.exists() else []
+
+
+def all_guides():
+    """(guide_id, guide, meta) for every readable guide. One unreadable or invalid guide is skipped (and logged)
+    instead of failing the whole Feed, Library or profile."""
+    for gid in all_ids():
+        try:
+            guide, meta = load(gid)
+        except (OSError, KeyError, ValueError) as e:  # pydantic's ValidationError is a ValueError
+            log.warning("skipping guide %s: %s", gid, e)
+            continue
+        yield gid, guide, meta
 
 
 def padded(start_s: float, end_s: float, duration_s: float) -> Clip:

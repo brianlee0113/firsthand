@@ -14,11 +14,13 @@ final class GuideModel {
   func load() async {
     do {
       let fresh = try await API.guide(guideId)
+      error = nil  // a later success clears an earlier failure
       guard let shown = response else { response = fresh; return }
       // A reload (after the step player closes) only brings back where the trainee stopped. Swapping the whole
       // response would rebuild the page under them a beat after it slid back in; change just that, and ease it.
       if fresh.progress != shown.progress { withAnimation(.snappy) { response?.progress = fresh.progress } }
     } catch {
+      if error.isCancellation { return }  // the page scrolled away mid-load; it loads again when it's back
       self.error = "Couldn't open this guide: \(error.localizedDescription)"
     }
   }
