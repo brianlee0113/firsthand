@@ -1,6 +1,6 @@
 # Firsthand
 
-**Some things aren't in any manual. Learn them firsthand.**
+**Firsthand** turns an expert's hands-on know-how into a guide anyone can follow — perfect use case for Meta Glasses and Muse Spark!
 
 - 🥽 **Record by doing.** Wear Meta glasses, do the job and say what you're doing. No script, no editing.
 - 🧠 **Muse Spark builds the guide.** That one recording becomes steps, each with a looping clip, an
