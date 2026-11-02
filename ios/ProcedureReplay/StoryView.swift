@@ -117,7 +117,10 @@ private struct StoryPage: View {
   private static let flipMax = 4
   @State private var showSteps = false
   /// A full-screen cover (Steps list, an author's profile) is over this page: it disappears without leaving the story.
-  @State private var covered = false
+  /// Read from the covers themselves: `onAppear` doesn't fire again when a full-screen cover closes, so a flag
+  /// reset there stayed set and the page never played again.
+  private var covered: Bool { showSteps || authorOpen }
+  @Environment(\.authorOpen) private var authorOpen
   @State private var lensBox = Lazy { LensMode() }
   private var lensMode: LensMode { lensBox.value }
   @Environment(\.openAuthor) private var openAuthor
@@ -184,7 +187,7 @@ private struct StoryPage: View {
       // Covered by the Steps list or a profile: keep the glasses on, the trainee comes back to this guide.
       if !covered { lensBox.existing?.turnOff() }
     }
-    .onAppear { covered = false }
+    .onChange(of: covered) { sync() }
     .fullScreenCover(isPresented: $showSteps) {
       NavigationStack { GuideView(model: GuideModel(guideId: guideId)) }.edgeSwipeBack()
     }
@@ -204,7 +207,7 @@ private struct StoryPage: View {
     if page != 0 { summarySeen = true }
     if !summarySeen { summaryClock.progress = 0 }
     // Under a cover (Steps list, a profile) nothing plays: the glasses may still move the page ("next"),
-    // and the clip waits for the trainee to come back (`.task` runs sync again on reappear).
+    // and the clip waits for the trainee to come back (closing the cover runs sync again).
     guard isActive, !covered, let response = model.response else {
       player.clear()
       if !isActive {
@@ -422,7 +425,7 @@ private struct StoryPage: View {
   private func header(_ response: GuideResponse) -> some View {
     let meta = response.meta
     return HStack(spacing: 8) {
-      Button { covered = true; openAuthor(meta.author) } label: {
+      Button { openAuthor(meta.author) } label: {
         HStack(spacing: 8) {
           Text(meta.authorName.split(separator: " ").compactMap(\.first).prefix(2).map(String.init).joined())
             .font(.eyebrow).foregroundStyle(.white)
@@ -608,7 +611,6 @@ private struct StoryPage: View {
       }
       railButton("list.bullet", "Steps", label: "All steps") {
         player.player.pause()
-        covered = true
         withoutAnimation { showSteps = true }
       }
     }

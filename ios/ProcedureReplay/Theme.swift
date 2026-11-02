@@ -197,6 +197,8 @@ extension EnvironmentValues {
   @Entry var slideBack: (() -> Void)?
   /// Opens a guide author's profile, yours included. Set by `authorProfiles()`.
   @Entry var openAuthor: (String) -> Void = { _ in }
+  /// A profile opened by `openAuthor` is over this screen. Views under it stop playing until it closes.
+  @Entry var authorOpen = false
   /// Closes whatever is on top, goes to the Library tab and opens the draft in the Draft editor. Set by RootView,
   /// so a draft tapped on your profile opened from a guide reaches the editor too.
   @Entry var editDraft: (String) -> Void = { _ in }
@@ -211,6 +213,7 @@ private struct AuthorProfiles: ViewModifier {
   func body(content: Content) -> some View {
     content
       .environment(\.openAuthor) { id in withoutAnimation { profile = ProfileLink(id: id) } }
+      .environment(\.authorOpen, profile != nil)
       .fullScreenCover(item: $profile) { link in
         Group {
           if link.id == API.user {
