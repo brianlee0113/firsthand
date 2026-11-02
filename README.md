@@ -7,7 +7,7 @@ video guide that anyone can follow on their phone.**
 
 https://github.com/user-attachments/assets/5655d4d5-2e1c-417e-89b2-d6f4be048f55
 
-<sub>A real run: a 78-second first-person recording becomes a 10-step guide (Muse Spark, about $0.007). Phone screen sped up per phase.
+<sub>A real run: a 78-second first-person recording becomes a 9-step guide (Muse Spark, about $0.008), then opens in the Feed as a story. Phone screen sped up per phase.
 Footage: [The Old Corona](https://www.youtube.com/watch?v=LPwPomA7BfM), CC BY 3.0.</sub>
 
 Meta's multimodal model (Muse Spark, with Muse Voice Transcribe for the narration) splits the recording into

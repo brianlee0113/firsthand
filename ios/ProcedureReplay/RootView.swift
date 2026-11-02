@@ -99,16 +99,19 @@ struct RootView: View {
     }
   }
 
-  /// `--autorun-e2e`: the whole demo path. Publish as Public, land on the Feed, open the new guide, play
+  /// `--autorun-e2e`: the whole demo path. Publish as Public, land on the Feed, open the new guide as a story, play
   /// step 1 and step 2, close, show the Library, and write Documents/e2e_result.json.
   private func autorunEndToEnd(_ f: CreateFlow) async {
     await f.autorunPublish()
     try? await Task.sleep(for: .seconds(4))
     guard let id = f.published?.guideId else { return }
-    openGuide = GuideLink(id: id, autoplayStep: 1)
-    try? await Task.sleep(for: .seconds(14))
+    // Opens it the way a Feed tap does: as a story (summary, then step 1, then step 2; StoryView advances).
+    if let cards = try? await API.feed(), let card = cards.first(where: { $0.guideId == id }) {
+      openStory = StoryLink(cards: cards, start: card, step: nil)
+    }
+    try? await Task.sleep(for: .seconds(18))
     let guide = try? await API.guide(id)
-    openGuide = nil
+    openStory = nil
     try? await Task.sleep(for: .seconds(1))
     tab = .library
     try? await Task.sleep(for: .seconds(3))

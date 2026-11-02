@@ -82,6 +82,13 @@ private struct StoryPage: View {
   @State private var summarySeen = false
   @State private var summaryTask: Task<Void, Never>?
   private static let summarySeconds = 4.0
+  /// Behind the summary, step covers flip like a Shorts preview: up to 7 picked evenly from first to last,
+  /// 0.6 s each, so the whole job goes by in about the 4 seconds the summary stays up.
+  @State private var flipFrames: [UIImage] = []
+  @State private var flipIndex = 0
+  @State private var flipTask: Task<Void, Never>?
+  private static let flipSeconds = 0.6
+  private static let flipMax = 7
   @State private var showSteps = false
   @State private var lensMode = LensMode()
   @Environment(\.openAuthor) private var openAuthor
@@ -118,10 +125,18 @@ private struct StoryPage: View {
       if model.response == nil { await model.load() }
       page = min(page, stepCount + 1)
       sync()
+      if flipFrames.isEmpty { await loadFlipFrames() }
     }
     .onChange(of: isActive) { sync() }
     .onChange(of: page) {
       sync()
+      // `--autorun-e2e`: the summary turns to step 1 by itself; let step 1 loop a while, then go on to step 2.
+      if page == 1, isActive, ProcessInfo.processInfo.arguments.contains("--autorun-e2e") {
+        Task {
+          try? await Task.sleep(for: .seconds(6))
+          if page == 1 { next() }
+        }
+      }
       if let step, lensMode.isOn, let guide = model.response?.guide { Task { await lensMode.show(guide: guide, step: step) } }
     }
     .onChange(of: soundOn) { applySound() }
@@ -135,6 +150,7 @@ private struct StoryPage: View {
     .onDisappear {
       loadTask?.cancel()
       summaryTask?.cancel()
+      flipTask?.cancel()
       player.clear()
       lensMode.turnOff()
     }
@@ -149,6 +165,7 @@ private struct StoryPage: View {
   private func sync() {
     loadTask?.cancel()
     summaryTask?.cancel()
+    flipTask?.cancel()
     held = false
     quoteOpen = false
     stepsOpen = false
@@ -173,6 +190,7 @@ private struct StoryPage: View {
       if page == 0, let first = response.guide.steps.first {
         prefetch(first)
         if !summarySeen { runSummaryTimer() }
+        runFlip()
       }
     }
   }
@@ -219,6 +237,43 @@ private struct StoryPage: View {
           page = 1
           return
         }
+      }
+    }
+  }
+
+  /// Step covers for the summary's flip, fetched together and kept in order (missing ones are skipped).
+  private func loadFlipFrames() async {
+    let n = steps.count
+    let k = min(n, Self.flipMax)
+    guard k > 1 else { return }
+    let picked = (0..<k).map { steps[Int((Double($0) * Double(n - 1) / Double(k - 1)).rounded())] }
+    let images = await withTaskGroup(of: (Int, UIImage?).self) { group in
+      for (i, step) in picked.enumerated() {
+        guard let path = step.coverUrl else { continue }
+        group.addTask {
+          guard let (data, _) = try? await URLSession.shared.data(from: API.url(path)) else { return (i, nil) }
+          return (i, UIImage(data: data))
+        }
+      }
+      var found: [(Int, UIImage)] = []
+      for await (i, image) in group { if let image { found.append((i, image)) } }
+      return found.sorted { $0.0 < $1.0 }.map(\.1)
+    }
+    guard images.count > 1 else { return }
+    flipFrames = images
+    if page == 0, isActive { runFlip() }
+  }
+
+  /// Cycles the covers while the summary is up; holding or a middle tap stops it with the 4-second clock.
+  private func runFlip() {
+    flipTask?.cancel()
+    guard flipFrames.count > 1 else { return }
+    flipTask = Task {
+      while !Task.isCancelled {
+        try? await Task.sleep(for: .seconds(Self.flipSeconds))
+        guard !Task.isCancelled, page == 0 else { return }
+        if held || summaryPaused { continue }
+        withAnimation(.easeInOut(duration: 0.15)) { flipIndex = (flipIndex + 1) % flipFrames.count }
       }
     }
   }
@@ -310,6 +365,15 @@ private struct StoryPage: View {
   private func background(_ response: GuideResponse) -> some View {
     if step != nil {
       PlayerSurface(player: player.player)
+    } else if page == 0, !flipFrames.isEmpty {
+      Color.clear.overlay {
+        ZStack {
+          Image(uiImage: flipFrames[flipIndex % flipFrames.count]).resizable().scaledToFill()
+            .id(flipIndex)
+            .transition(.opacity)
+        }
+      }
+      .clipped()
     } else {
       Color.clear.overlay {
         AsyncImage(url: API.url("/guides/\(guideId)/cover.jpg")) { $0.resizable().scaledToFill() } placeholder: { Color.black }

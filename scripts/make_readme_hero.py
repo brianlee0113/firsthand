@@ -2,13 +2,13 @@
 
 Left: the source video (The Old Corona, CC BY 3.0) plays end to end with a timeline under it. Once Muse Spark has
 built the guide, the timeline fills with the guide's steps and the step under the playhead is named.
-Right: the real screen recording of the app (record -> Meta AI builds -> draft -> publish -> feed -> step player),
+Right: the real screen recording of the app (record -> Meta AI builds -> draft -> publish -> feed -> story),
 sped up per phase. A caption above the video names each phase.
 
     uv run --with pillow python scripts/make_readme_hero.py
     -> docs/assets/hero.mp4 (and hero_poster.png)
 
-Needs results/walkthrough/demo_raw_199s.mp4 and data/raw/narrated/yt_LPwPomA7BfM.mp4 (both kept out of git).
+Needs results/walkthrough/demo_story_raw.mp4 and data/raw/narrated/yt_LPwPomA7BfM.mp4 (both kept out of git).
 """
 
 from __future__ import annotations
@@ -21,9 +21,9 @@ from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = Path(__file__).resolve().parents[1]
-SCREEN = ROOT / "results/walkthrough/demo_raw_199s.mp4"
+SCREEN = ROOT / "results/walkthrough/demo_story_raw.mp4"  # simulator, --autorun-e2e, PR_AUTORUN_RECORD_S=78
 SOURCE = ROOT / "data/raw/narrated/yt_LPwPomA7BfM.mp4"
-GUIDE = ROOT / "results/app/guides/g_a311ab097def/guide.json"  # the guide built in that screen recording
+GUIDE = ROOT / "results/app/guides/g_ae789a607ab8/guide.json"  # the guide built in that screen recording
 OUT = ROOT / "docs/assets"
 
 W, H, FPS = 1280, 720, 30
@@ -35,18 +35,19 @@ BAR = (225, 225, 220)
 STEP_COLORS = [(47, 91, 211), (86, 132, 235)]  # alternate so neighbouring steps read as separate blocks
 
 # (start s, end s, speed-up, kicker, headline, sub, guide step on screen or None) in the screen recording.
-# The step player phases skip the "Cutting the clip..." waits; the left video loops the same step clip at the same speed.
-PLAYER = ("5 / 5  ·  TRAINEE", "Every step loops its own clip.",
-          "Instruction, a done-when check, and the instructor's own words.")
+# The story phases skip the spinner while a step's clip loads; the left video loops the same step clip at the same speed.
+PLAYER = ("5 / 5  ·  TRAINEE", "Open it like a story.",
+          "A summary, then one looping clip per step with a done-when check.")
 PHASES = [
-    (5.2, 65.0, 20, "1 / 5  ·  INSTRUCTOR", "Work and talk.", "The glasses record what you see and say.", None),
-    (84.0, 172.8, 30, "2 / 5  ·  META AI", "Muse Spark builds the guide.",
+    (18.5, 97.5, 20, "1 / 5  ·  INSTRUCTOR", "Work and talk.", "The glasses record what you see and say.", None),
+    (99.5, 212.8, 30, "2 / 5  ·  META AI", "Muse Spark builds the guide.",
      "Watches the video, listens to the narration, reads on-screen text.", None),
-    (173.0, 178.0, 1.7, "3 / 5  ·  INSTRUCTOR", "Check the draft. Publish.",
+    (213.0, 219.8, 2.0, "3 / 5  ·  INSTRUCTOR", "Check the draft. Publish.",
      "Meta AI suggests the title, category and summary.", None),
-    (178.0, 183.0, 1.7, "4 / 5  ·  TRAINEE", "Find it in the feed.", "Public guides show up for everyone.", None),
-    (184.6, 187.8, 1.5, *PLAYER, 0),
-    (190.0, 196.5, 2.0, *PLAYER, 1),
+    (220.0, 224.8, 1.7, "4 / 5  ·  TRAINEE", "Find it in the feed.", "Public guides show up for everyone.", None),
+    (225.0, 228.9, 1.3, *PLAYER, None),
+    (231.3, 235.8, 1.5, *PLAYER, 0),
+    (237.4, 241.8, 1.5, *PLAYER, 1),
 ]
 
 # layout
