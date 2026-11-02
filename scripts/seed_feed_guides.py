@@ -49,6 +49,10 @@ def test_videos() -> set[str]:
     return named | {"yt_P-pHllvP0wo"}
 
 
+# Same creators download_feed_videos.py refuses: a video of theirs already on disk is not seeded either.
+HELD_OUT_CREATORS = ("Abraham Moreno", "Ultra Plumbing")
+
+
 def spent() -> float:
     if not COSTS.exists():
         return 0.0
@@ -63,6 +67,8 @@ def todo() -> list[dict]:
         for row in csv.DictReader(f):
             vid = row["video_id"]
             if not (NARRATED / f"{vid}.mp4").exists() or vid in held_out:
+                continue
+            if any(c in row["creator"] for c in HELD_OUT_CREATORS):
                 continue
             if (guides.GUIDES / guide_id(vid) / "guide.json").exists():
                 continue
@@ -104,8 +110,12 @@ def main() -> None:
     stop = threading.Event()
 
     def guarded(row: dict):
-        if stop.is_set():
-            return row["video_id"], None
+        # Checked before each build, not only after: builds already running when the budget is reached still
+        # finish (at most --workers - 1 of them), but no new one starts.
+        with lock:
+            if stop.is_set() or spent() - start >= args.budget:
+                stop.set()
+                return row["video_id"], None
         result = build_one(row)
         with lock:
             used = spent() - start

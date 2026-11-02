@@ -37,22 +37,38 @@ def slug(title: str) -> str:
     return "_".join(words[:5]) or "feed_video"
 
 
+def registered() -> tuple[set[str], set[str]]:
+    """Video ids already in the manifest, and already in ATTRIBUTION.md."""
+    with MANIFEST.open() as f:
+        manifest = {r["video_id"] for r in csv.DictReader(f)}
+    attribution = set(re.findall(r"^### (\S+)$", ATTRIBUTION.read_text(), re.M)) if ATTRIBUTION.exists() else set()
+    return manifest, attribution
+
+
 def pending(max_minutes: float) -> list[dict]:
+    """Candidates still missing their file, their manifest row or their ATTRIBUTION entry. A run stopped
+    between download and register (or a file deleted later) is repaired, not skipped or registered twice."""
+    manifest, attribution = registered()
     out = []
     with CANDIDATES.open() as f:
         for row in csv.DictReader(f):
+            vid = row["video_id"]
             if not row["label"].startswith("학습"):
                 continue
             if any(c in row["creator"] for c in HELD_OUT_CREATORS):
                 continue
-            if (NARRATED / f"{row['video_id']}.mp4").exists() or int(row["duration_s"]) > max_minutes * 60:
+            have_file = (NARRATED / f"{vid}.mp4").exists()
+            if have_file and vid in manifest and vid in attribution:
+                continue
+            if not have_file and int(row["duration_s"]) > max_minutes * 60:
                 continue
             out.append(row)
     return out
 
 
 def fetch(row: dict) -> tuple[dict, str | None]:
-    """Download one video after re-checking its license. Returns (row, problem or None)."""
+    """Download one video after re-checking its license. Returns (row, problem or None). The license is
+    re-checked even when the file is already here (only its registration is missing)."""
     vid, url = row["video_id"], row["source_url"]
     try:
         info = json.loads(subprocess.run(["yt-dlp", "-J", "--no-warnings", url], check=True, capture_output=True,
@@ -63,6 +79,9 @@ def fetch(row: dict) -> tuple[dict, str | None]:
     if "creative commons" not in lic:
         return row, f"license in metadata is {info.get('license')!r}"
     out = NARRATED / f"{vid}.mp4"
+    row["_channel"] = info.get("channel_url") or row["channel_url"]
+    if out.exists():
+        return row, None
     try:
         subprocess.run(["yt-dlp", "--no-warnings", "-q", "-f",
                         "bv*[height<=720][ext=mp4]+ba[ext=m4a]/b[height<=720][ext=mp4]/b[height<=720]",
@@ -71,22 +90,24 @@ def fetch(row: dict) -> tuple[dict, str | None]:
     except Exception as e:
         out.unlink(missing_ok=True)
         return row, f"download: {type(e).__name__}"
-    row["_channel"] = info.get("channel_url") or row["channel_url"]
     return row, None
 
 
 def register(row: dict) -> None:
+    """Adds whichever of the manifest row and the ATTRIBUTION entry is missing."""
     vid, creator, channel = row["video_id"], row["creator"], row.get("_channel") or row["channel_url"]
-    with MANIFEST.open("a", newline="") as f:
-        csv.writer(f).writerow([vid, slug(row["title"]), f"{creator} (YouTube, {channel})", row["source_url"],
-                                "CC-BY-3.0", "reference", f"data/raw/narrated/{vid}.mp4"])
-    m, s = divmod(int(row["duration_s"]), 60)
-    with ATTRIBUTION.open("a") as f:
-        f.write(f"\n### {vid}\n- Title: {row['title']}\n- Creator: {creator}, {channel}\n- Source: {row['source_url']}\n"
-                f"- License: CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)\n"
-                f"- Camera: first person (hands doing the task); English narration. {m}:{s:02d}. "
-                f"Feed sample ({CATEGORY_LABEL.get(row['category'], 'Other')})\n- Role: reference\n- Edits:\n")
-
+    manifest, attribution = registered()
+    if vid not in manifest:
+        with MANIFEST.open("a", newline="") as f:
+            csv.writer(f).writerow([vid, slug(row["title"]), f"{creator} (YouTube, {channel})", row["source_url"],
+                                    "CC-BY-3.0", "reference", f"data/raw/narrated/{vid}.mp4"])
+    if vid not in attribution:
+        m, s = divmod(int(row["duration_s"]), 60)
+        with ATTRIBUTION.open("a") as f:
+            f.write(f"\n### {vid}\n- Title: {row['title']}\n- Creator: {creator}, {channel}\n- Source: {row['source_url']}\n"
+                    f"- License: CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)\n"
+                    f"- Camera: first person (hands doing the task); English narration. {m}:{s:02d}. "
+                    f"Feed sample ({CATEGORY_LABEL.get(row['category'], 'Other')})\n- Role: reference\n- Edits:\n")
 
 def main() -> None:
     ap = argparse.ArgumentParser()
@@ -109,7 +130,7 @@ def main() -> None:
                 continue
             register(row)  # main thread only, so the CSV and ATTRIBUTION appends don't interleave
             ok += 1
-            print(f"{row['video_id']}: downloaded", flush=True)
+            print(f"{row['video_id']}: ready (downloaded and registered)", flush=True)
     print(f"downloaded {ok} of {len(rows)}")
 
 
