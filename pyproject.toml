@@ -1,7 +1,7 @@
 [project]
-name = "procedure-replay"
+name = "firsthand"
 version = "0.1.0"
-description = "Learn a manual procedure from one reference video, then flag skipped or out-of-order steps in another person's video."
+description = "Firsthand: wear Meta glasses, do the job, and Muse Spark turns the recording into a step-by-step guide anyone can follow."
 license = "MIT"
 requires-python = ">=3.11"
 dependencies = [

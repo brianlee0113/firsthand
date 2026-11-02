@@ -1,14 +1,17 @@
 # Firsthand
 
-**Learn it firsthand.** (Formerly ProcedureReplay; the code, Xcode target and bundle ID keep that name.)
+**Some things aren't in any manual. Learn them firsthand.**
 
-**Wear Meta glasses, do the job and talk it through: Muse Spark turns that one recording into a step-by-step
-video guide that anyone can follow on their phone.**
+Wear Meta glasses, do the job and say what you're doing. Muse Spark turns that one recording into a
+step-by-step guide that anyone can follow on their phone: a looping clip, an instruction and a "done when"
+check for every step. From an engineer's solder joints to Mom's dumplings.
 
-https://github.com/user-attachments/assets/47e47d35-6816-4b1d-a2c4-5ee67b7c4487
+https://github.com/user-attachments/assets/b2bf1cb3-8715-4bcb-92be-3c74dbff4ae5
 
-<sub>A real run: a 78-second first-person recording becomes a 9-step guide (Muse Spark, about $0.008), then opens in the Feed as a story. Phone screen sped up per phase.
-Footage: [The Old Corona](https://www.youtube.com/watch?v=LPwPomA7BfM), CC BY 3.0.</sub>
+<sub>The steps and the phone screens are real: Muse Spark's guide for a potter's-wheel video in the Feed, and the
+app playing it as a story (iOS simulator). The glasses feed is simulated with clips from the Feed's CC BY
+videos (credits in [ATTRIBUTION.md](ATTRIBUTION.md)). Music: Soundsurfer, "Stylish Hip Hop" (Pixabay).
+Formerly ProcedureReplay: the Python package `pr`, the Xcode target and the bundle ID keep that name.</sub>
 
 Meta's multimodal model (Muse Spark, with Muse Voice Transcribe for the narration) splits the recording into
 steps and writes, for each step, an instruction, a "done when" check and the instructor's own words; the server
