@@ -2,9 +2,11 @@
 
 **Some things aren't in any manual. Learn them firsthand.**
 
-Wear Meta glasses, do the job and say what you're doing. Muse Spark turns that one recording into a
-step-by-step guide that anyone can follow on their phone: a looping clip, an instruction and a "done when"
-check for every step. From an engineer's solder joints to Mom's dumplings.
+- 🥽 **Record by doing.** Wear Meta glasses, do the job and say what you're doing. No script, no editing.
+- 🧠 **Muse Spark builds the guide.** That one recording becomes steps, each with a looping clip, an
+  instruction and a "done when" check.
+- 📱 **Anyone can follow it.** Learners tap through it on their phone like a story, from an engineer's solder
+  joints to Mom's dumplings.
 
 https://github.com/user-attachments/assets/b2bf1cb3-8715-4bcb-92be-3c74dbff4ae5
 
