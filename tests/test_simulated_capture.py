@@ -17,7 +17,8 @@ from pr.frames import probe  # noqa: E402
 
 SOURCE = "yt_LPwPomA7BfM"
 if not license_check.local_path(license_check.find_row(SOURCE)).exists():
-    raise SystemExit(f"skipped: {SOURCE} not downloaded")
+    print(f"skipped: {SOURCE} not downloaded")
+    raise SystemExit(0)  # a skip, not a failure: a fresh clone has no videos
 
 tmp = Path(tempfile.mkdtemp())
 guides.GUIDES = tmp / "guides"
