@@ -39,6 +39,9 @@ final class CreateFlow {
   private var mic: PhoneMic?
   /// Set when the instructor closes the flow: stops the job polling and anything still starting up.
   private var closed = false
+  /// Between Stop and the upload starting. A second Stop (a double tap, or the glasses' capture button)
+  /// used to start a new recording here and upload the first one without its step marks.
+  private(set) var finishing = false
 
   /// Connects the glasses. With the iPhone camera, the iPhone mic listens too (captions, then the recording's
   /// sound); with the demo feed, its narration plays through the glasses' recognizer.
@@ -87,6 +90,7 @@ final class CreateFlow {
   }
 
   func toggleRecording() async {
+    guard !finishing, !closed else { return }
     if camera.isRecording {
       await finishRecording()
     } else {
@@ -103,6 +107,10 @@ final class CreateFlow {
   }
 
   func finishRecording() async {
+    guard !finishing else { return }
+    finishing = true
+    defer { finishing = false }
+    let marks = self.marks  // what was marked up to Stop, whatever happens while the file finishes
     recordedSeconds = camera.recordingStarted.map { Date().timeIntervalSince($0) } ?? 0
     let window = feedMode == .demoVideo ? feedWindow() : nil
     thumbnail = camera.frame
@@ -146,12 +154,14 @@ final class CreateFlow {
     return (start, min(duration, start + recordedSeconds))
   }
 
-  /// Stops what the flow started (job polling, the iPhone mic) when the instructor closes it.
+  /// Stops what the flow started (job polling, the iPhone mic, the glasses) when the instructor closes it,
+  /// from any screen: closing "Nothing was recorded" used to leave the mock glasses paired and streaming.
   func cancel() {
     closed = true
     _ = mic?.stopFile()
     mic?.stop()
     mic = nil
+    camera.disconnect()
   }
 
   private func followJob() async {

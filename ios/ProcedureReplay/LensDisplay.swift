@@ -46,6 +46,7 @@ final class LensController {
 
   /// Pairs simulated Meta Ray-Ban Display glasses and starts a Display session on them.
   func connect() async {
+    if case .failed = state { disconnect() }  // a retry after a failure starts clean (it used to stay failed)
     guard state == .idle else { return }
     state = .connecting
     generation += 1
@@ -90,7 +91,7 @@ final class LensController {
           done.resume(throwing: error)
         }
       }
-      abortWait = nil
+      if gen == generation { abortWait = nil }
       try check()
       let display = try session.addDisplay()
       self.display = display
@@ -112,7 +113,7 @@ final class LensController {
         }.store(in: tokens)
         display.start()
       }
-      abortWait = nil
+      if gen == generation { abortWait = nil }
       try check()
       // Voice is optional (experimental capability): the lens buttons work without it.
       if let speech = try? session.addSpeech() {
@@ -126,6 +127,7 @@ final class LensController {
       state = .ready
     } catch {
       guard gen == generation else { return }  // turned off meanwhile: disconnect() already set .idle
+      disconnect()  // unpair what was set up, so the glasses don't pile up
       state = .failed("Couldn't connect the Display glasses: \(error)")
     }
   }

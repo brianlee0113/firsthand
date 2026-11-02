@@ -480,12 +480,24 @@ def credit(guide: guides.Guide) -> dict | None:
     return {"creator": row["creator"].split(" (")[0], "license": row["license"], "source_url": row["source_url"]}
 
 
+def cover_url(guide: guides.Guide, index: int | None = None) -> str | None:
+    """Cover path with the frame's time as ?v=: a re-cut that moves the frame changes the URL, so the app's
+    image cache shows the new frame instead of the old one. No index: the guide cover (the middle step)."""
+    if not guide.steps:
+        return None
+    if index is None:
+        step = guide.steps[len(guide.steps) // 2]
+        return f"/guides/{guide.guide_id}/cover.jpg?v={step.cover_s:.2f}"
+    step = next(s for s in guide.steps if s.index == index)
+    return f"/guides/{guide.guide_id}/steps/{index}/cover.jpg?v={step.cover_s:.2f}"
+
+
 def card(guide: guides.Guide, meta: guides.Meta, user: str) -> dict:
     return {"guide_id": guide.guide_id, "title": guide.title, "category": guide.category,
             "category_label": guides.CATEGORIES[guide.category], "steps": len(guide.steps),
             "duration_s": guide.duration_s, "author": meta.author, "author_name": meta.author_name,
             "author_role": meta.author_role, "visibility": meta.visibility, "published_at": meta.published_at,
-            "cover_url": f"/guides/{guide.guide_id}/cover.jpg", **reactions_of(guide.guide_id, user)}
+            "cover_url": cover_url(guide) or f"/guides/{guide.guide_id}/cover.jpg", **reactions_of(guide.guide_id, user)}
 
 
 @app.get("/guides/{guide_id}")
@@ -494,7 +506,8 @@ def get_guide(guide_id: str, user: str = USER) -> dict:
     data = guide.model_dump()
     for s in data["steps"]:
         s["clip_url"] = f"/guides/{guide_id}/clips/{s['index']}.mp4"
-        s["cover_url"] = f"/guides/{guide_id}/steps/{s['index']}/cover.jpg"
+        s["cover_url"] = cover_url(guide, s["index"])
+    data["cover_url"] = cover_url(guide)
     return {"guide": data, "meta": meta.model_dump(), "category_label": guides.CATEGORIES[guide.category],
             "credit": credit(guide), "reactions": reactions_of(guide_id, user),
             "progress": read_json(PROGRESS, {}).get(user, {}).get(guide_id)}

@@ -81,7 +81,7 @@ struct PublishView: View {
   private func cover(_ guide: Guide) -> some View {
     let step = guide.steps.isEmpty ? nil : guide.steps[guide.steps.count / 2]  // the cover is the middle step's frame
     return HStack(spacing: 12) {
-      RemoteImage(url: API.url("/guides/\(guide.guideId)/cover.jpg"), maxPixel: 300) { Color.track }
+      RemoteImage(url: API.url(guide.coverPath), maxPixel: 300) { Color.track }
       .frame(width: 84, height: 84)
       .clipShape(RoundedRectangle(cornerRadius: 18))
       VStack(alignment: .leading, spacing: 4) {

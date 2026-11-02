@@ -75,6 +75,8 @@ def build_one(row: dict) -> tuple[str, str]:
     gid = guide_id(vid)
     creator = find_row(vid)["creator"].split(" (")[0]
     guide, raw = build.build_guide(vid, gid, cfg=APP_BUILD_CONFIG)
+    if not guide.steps:  # every step dropped in postprocess: don't publish an empty guide (as server.run_job)
+        raise ValueError("no steps found in this video")
     guides.write_json(guides.guide_dir(gid) / "raw.json", raw)
     meta = guides.Meta(author=author_id(creator), author_name=creator, author_role="YouTube · CC BY",
                        visibility="public", published_at=guides.now())

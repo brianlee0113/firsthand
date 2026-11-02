@@ -63,8 +63,11 @@ assert api.get("/feed", headers=MIN).json() == []
 # Draft edit: text, then a re-cut that moves the loop clip; overlapping cuts are refused.
 s = api.patch(f"/guides/{gid}/steps/2", json={"title": "Take out the old bit"}, headers=LUIS).json()
 assert s["title"] == "Take out the old bit"
+old_cover = s["cover_url"]
 s = api.patch(f"/guides/{gid}/steps/2", json={"start_s": 8.0, "end_s": 16.0}, headers=LUIS).json()
 assert (s["clip"]["start_s"], s["clip"]["end_s"]) == (7.0, 17.0), s["clip"]
+# The cover URL carries the frame time, so the app's image cache can't keep showing the old frame.
+assert s["cover_url"] == f"/guides/{gid}/steps/2/cover.jpg?v={s['cover_s']:.2f}" and s["cover_url"] != old_cover, s
 assert api.patch(f"/guides/{gid}/steps/2", json={"end_s": 30.0}, headers=LUIS).status_code == 422
 model = guides.Guide.model_validate_json((guides.GUIDES / gid / "model.json").read_text())
 assert model.steps[1].title != "Take out the old bit"  # the model's output is kept for evaluation

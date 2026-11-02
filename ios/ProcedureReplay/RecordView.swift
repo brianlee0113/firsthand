@@ -115,7 +115,7 @@ struct RecordView: View {
               .frame(width: camera.isRecording ? 30 : 60, height: camera.isRecording ? 30 : 60)
           }
         }
-        .disabled(camera.state != .streaming)
+        .disabled(camera.state != .streaming || flow.finishing)
         .accessibilityLabel(camera.isRecording ? "Stop and build guide" : "Start recording")
         Text(camera.isRecording ? "Stop & build guide" : "Record").font(.footnote).foregroundStyle(.white)
       }

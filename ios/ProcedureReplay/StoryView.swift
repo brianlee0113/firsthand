@@ -151,7 +151,7 @@ private struct StoryPage: View {
           if page == 1 { next() }
         }
       }
-      if let step, lensMode.isOn, let guide = model.response?.guide { Task { await lensMode.show(guide: guide, step: step) } }
+      if lensMode.isOn, let guide = model.response?.guide { Task { await lensMode.follow(page: page, guide: guide) } }
     }
     .onChange(of: soundOn) { applySound() }
 
@@ -188,7 +188,9 @@ private struct StoryPage: View {
     summaryPaused = false
     if page != 0 { summarySeen = true }
     if !summarySeen { summaryClock.progress = 0 }
-    guard isActive, let response = model.response else {
+    // Under a cover (Steps list, a profile) nothing plays: the glasses may still move the page ("next"),
+    // and the clip waits for the trainee to come back (`.task` runs sync again on reappear).
+    guard isActive, !covered, let response = model.response else {
       player.clear()
       if !isActive { lensMode.turnOff() }
       return
@@ -390,7 +392,7 @@ private struct StoryPage: View {
       .clipped()
     } else {
       Color.clear.overlay {
-        RemoteImage(url: API.url("/guides/\(guideId)/cover.jpg")) { Color.black }
+        RemoteImage(url: API.url(response.guide.coverPath)) { Color.black }
       }
       .clipped()
       .overlay { if isDone { Color.black.opacity(0.45) } }

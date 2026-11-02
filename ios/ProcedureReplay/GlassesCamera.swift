@@ -57,6 +57,9 @@ final class GlassesCamera {
   @ObservationIgnored private var camera: Camera?
   @ObservationIgnored private let tokens = ListenerTokenBag()
   @ObservationIgnored private let recorder = FrameRecorder()
+  /// Bumped by `disconnect()`: a `connect()` still awaiting (camera permission, the device appearing) stops
+  /// instead of starting a session on glasses that were closed meanwhile.
+  @ObservationIgnored private var generation = 0
   // Created before pairing so it sees the mock device appear; createSession throws noEligibleDevice
   // if no device is active yet (DAT skills/display-access).
   // Camera glasses only: the trainee's Display glasses (LensController) may be paired at the same time.
@@ -66,29 +69,35 @@ final class GlassesCamera {
 
   /// With `.phoneCamera`, MockDeviceKit's glasses use the iPhone's rear camera as their camera.
   func connect(feed: FeedMode = AppSettings.feedMode) async {
+    if case .failed = state { disconnect() }  // a retry after a failure starts clean
     guard state == .idle else { return }
     state = .connecting
+    generation += 1
+    let gen = generation
     do {
       MockDeviceKit.shared.enable()  // starts registered, with permissions granted
       let glasses = try MockDeviceKit.shared.pairGlasses(model: .rayBanMeta)
+      self.glasses = glasses  // from here on, disconnect() (and every failure below) unpairs them
       glasses.powerOn()
       glasses.unfold()
       glasses.don()
       if feed == .phoneCamera {
-        guard await AVCaptureDevice.requestAccess(for: .video) else {
-          state = .failed("Allow camera access in Settings to use the iPhone as the glasses camera.")
+        let allowed = await AVCaptureDevice.requestAccess(for: .video)
+        guard gen == generation else { return }  // closed while iOS asked; disconnect() already unpaired
+        guard allowed else {
+          fail("Allow camera access in Settings to use the iPhone as the glasses camera.")
           return
         }
         glasses.services.camera.setCameraFeed(cameraFacing: .back)
       } else {
         guard let url = Bundle.main.url(forResource: "glasses_feed", withExtension: "mp4") else {
-          state = .failed("glasses_feed.mp4 is missing: run scripts/make_mock_feed.sh")
+          fail("glasses_feed.mp4 is missing: run scripts/make_mock_feed.sh")
           return
         }
         glasses.services.camera.setCameraFeed(fileURL: url)
       }
-      self.glasses = glasses
-      for await device in selector.activeDeviceStream() where device != nil { break }
+      for await device in selector.activeDeviceStream() where device != nil || gen != generation { break }
+      guard gen == generation else { return }
       let session = try Wearables.shared.createSession(deviceSelector: selector)
       self.session = session
       session.statePublisher.listen { [weak self] s in
@@ -96,8 +105,15 @@ final class GlassesCamera {
       }.store(in: tokens)
       try session.start()
     } catch {
-      state = .failed("Couldn't connect to the glasses: \(error)")
+      guard gen == generation else { return }
+      fail("Couldn't connect to the glasses: \(error)")
     }
+  }
+
+  /// Unpairs whatever was set up, then shows the error.
+  private func fail(_ message: String) {
+    disconnect()
+    state = .failed(message)
   }
 
   private func sessionChanged(_ s: DeviceSessionState) {
@@ -217,6 +233,7 @@ final class GlassesCamera {
   }
 
   func disconnect() {
+    generation += 1
     narrationTask?.cancel()
     inputTask?.cancel()
     speech?.stop()
@@ -234,6 +251,7 @@ final class GlassesCamera {
     frame = nil
     framesReceived = 0
     firstFrameAt = nil
+    recordingStarted = nil  // or "Record again" opened already showing REC and a Stop button
     state = .idle
   }
 }

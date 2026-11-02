@@ -142,7 +142,7 @@ struct GuideView: View {
         .frame(maxWidth: .infinity)
         .frame(height: 340)
         .overlay {
-          RemoteImage(url: API.url("/guides/\(guide.guideId)/cover.jpg")) { Color.track }
+          RemoteImage(url: API.url(guide.coverPath)) { Color.track }
         }
         .clipped()
       .overlay {

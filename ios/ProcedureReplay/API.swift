@@ -9,9 +9,12 @@ enum API {
   static let userName = ProcessInfo.processInfo.environment["PR_USER_NAME"] ?? "Luis Ortega"
 
   /// Absolute URL for a server path such as `/guides/x/cover.jpg`; images can't send headers, so add ?user=.
+  /// A path may carry its own query (covers come as `…/cover.jpg?v=<frame time>`); ?user= is added to it.
   static func url(_ path: String) -> URL {
-    var c = URLComponents(url: base.appendingPathComponent(path), resolvingAgainstBaseURL: false)!
-    c.queryItems = [URLQueryItem(name: "user", value: user)]
+    let parts = path.split(separator: "?", maxSplits: 1).map(String.init)
+    var c = URLComponents(url: base.appendingPathComponent(parts.first ?? path), resolvingAgainstBaseURL: false)!
+    let own = parts.count > 1 ? URLComponents(string: "?" + parts[1])?.queryItems ?? [] : []
+    c.queryItems = own + [URLQueryItem(name: "user", value: user)]
     return c.url!
   }
 
@@ -201,6 +204,14 @@ struct Guide: Decodable {
   let inputsProvided: [String: Bool]?
 
   var hasNarration: Bool { inputsProvided?["transcript"] == true }
+
+  /// The guide cover (the middle step's frame), versioned by that frame's time like the server's
+  /// `cover_url`, so a re-cut in the Draft shows the new frame instead of the cached one.
+  var coverPath: String {
+    let base = "/guides/\(guideId)/cover.jpg"
+    guard !steps.isEmpty else { return base }
+    return base + String(format: "?v=%.2f", steps[steps.count / 2].coverS)
+  }
 }
 
 struct GuideMeta: Decodable {
