@@ -123,8 +123,13 @@ struct FeedView: View {
   }
 
   private func load() async {
+    let category = selected
     do {
-      cards = try await API.feed(category: selected)
+      let result = try await API.feed(category: category)
+      // Several reloads run outside the chip's task (pull, title tap, Settings, closing a story):
+      // one that started for another category must not overwrite the chip's list.
+      guard category == selected else { return }
+      cards = result
       error = nil
       loaded = true
       if categories.isEmpty { categories = (try? await API.categories()) ?? [] }

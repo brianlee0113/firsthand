@@ -15,6 +15,9 @@ enum API {
     return c.url!
   }
 
+  /// A link to send to someone else: no ?user=, so whoever opens it is themselves, not you.
+  static func shareURL(_ path: String) -> URL { base.appendingPathComponent(path) }
+
   private static let decoder: JSONDecoder = {
     let d = JSONDecoder()
     d.keyDecodingStrategy = .convertFromSnakeCase

@@ -46,6 +46,8 @@ final class LensMode {
     error = nil
     lens.onHeard = { [weak self] text in self?.handleVoice(text) }
     await lens.connect()
+    // Turned off and on again while this connect waited: the newer turnOn owns `connecting` now.
+    if lens.state == .connecting { return }
     connecting = false
     if case .failed(let message) = lens.state {
       error = message

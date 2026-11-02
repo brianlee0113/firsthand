@@ -28,6 +28,12 @@ fake_video = ("rec.mp4", io.BytesIO(b"not really a video"), "video/mp4")
 r = api.post("/recordings", data={"task": "drill_bit", "license": "CC-BY-NC-4.0", "creator": "x"},
              files={"video": fake_video}, headers=LUIS)
 assert r.status_code == 403, r.text
+# A request refused for its marks or source window stores nothing either.
+before = set(server.UPLOADS.glob("*")) if server.UPLOADS.exists() else set()
+r = api.post("/recordings", data={"task": "drill_bit", "source_video_id": "07_u01_r02_c_01", "marks": "not json"},
+             files={"video": fake_video}, headers=LUIS)
+assert r.status_code == 422, r.text
+assert (set(server.UPLOADS.glob("*")) if server.UPLOADS.exists() else set()) == before
 
 # Upload → job → stages → guide.
 r = api.post("/recordings", data={"task": "drill_bit", "source_video_id": "07_u01_r02_c_01", "author_name": "Luis Ortega",
@@ -85,6 +91,10 @@ lib = api.get("/library", headers=LUIS).json()
 assert [x["guide_id"] for x in lib["mine"]] == [gid]
 assert lib["profile"] == {"guides": 1, "learners": 1, "likes": 1}  # min liked it and opened step 3
 assert api.delete(f"/guides/{gid}/like", headers=MIN).json()["likes"] == 0
+# ?user= is for reads (images, clips); a shared link carrying it can't act as that user.
+assert api.post(f"/guides/{gid}/like?user=min").json()["likes"] == 1  # counted as "me", not min
+assert api.post(f"/guides/{gid}/like", headers=MIN).json()["likes"] == 2  # min hadn't liked it
+api.delete(f"/guides/{gid}/like"), api.delete(f"/guides/{gid}/like", headers=MIN)
 
 # A profile shows someone's public guides only; their saved and liked guides stay private.
 u = api.get("/users/luis", headers=MIN).json()

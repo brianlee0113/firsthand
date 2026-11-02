@@ -50,7 +50,7 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
-from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, UploadFile
+from fastapi import Depends, FastAPI, File, Form, Header, HTTPException, Query, Request, UploadFile
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 
@@ -258,9 +258,13 @@ STAGE_DELAY_S = float(os.environ.get("PR_STAGE_DELAY_S", "0.6"))
 DEFAULT_CATEGORY = {"pc_repair": "repair_maintenance", "drill_bit": "workshop_tools", "home_cooking": "cooking"}
 
 
-def current_user(x_user: str | None = Header(None, alias="X-User"), user: str | None = Query(None)) -> str:
-    """The X-User header, or ?user= for requests that cannot set headers (images loaded by the app)."""
-    return x_user or user or "me"
+def current_user(request: Request, x_user: str | None = Header(None, alias="X-User"),
+                 user: str | None = Query(None)) -> str:
+    """The X-User header, or ?user= for requests that cannot set headers (images and clips loaded by the app).
+    ?user= counts for reads only: a link that carries someone's ?user= can't like, save, edit or publish as them."""
+    if x_user:
+        return x_user
+    return (user if request.method in ("GET", "HEAD") else None) or "me"
 
 
 USER = Depends(current_user)
@@ -368,13 +372,15 @@ def create_recording(task: str = Form(...), video: UploadFile = File(...), sourc
                      author_name: str = Form("You"), marks: str | None = Form(None),
                      source_start_s: float | None = Form(None), source_end_s: float | None = Form(None),
                      audio: UploadFile | None = File(None), user: str = USER) -> dict:
-    job_id = uuid.uuid4().hex[:12]
-    video_id = store_upload(f"app_rec_{job_id}", video, task, "reference", source_video_id, license, creator)
+    # Check everything the request can be refused for before storing anything: a 422 leaves no files or rows.
+    parsed_marks = parse_marks(marks)
     window = None
     if source_video_id and source_start_s is not None and source_end_s is not None:
         if source_end_s - max(0.0, source_start_s) < 1.0:
             raise HTTPException(422, f"source window {source_start_s:.1f}–{source_end_s:.1f} s is shorter than a second")
         window = {"source_video_id": source_video_id, "start_s": source_start_s, "end_s": source_end_s}
+    job_id = uuid.uuid4().hex[:12]
+    video_id = store_upload(f"app_rec_{job_id}", video, task, "reference", source_video_id, license, creator)
     audio_path = None
     if audio is not None and audio.filename:  # the phone's microphone, recorded alongside the glasses video
         audio_path = UPLOADS / f"{video_id}_mic{Path(audio.filename).suffix or '.m4a'}"
@@ -383,7 +389,7 @@ def create_recording(task: str = Form(...), video: UploadFile = File(...), sourc
     job = {"id": job_id, "video_id": video_id, "task": task, "guide_id": f"g_{job_id}", "author": user,
            "author_name": author_name, "status": "queued", "created": guides.now(),
            # seconds where the instructor tapped "Mark step" while recording; a hint for the B2 builder
-           "marks": parse_marks(marks),
+           "marks": parsed_marks,
            "simulate": window,  # run_job turns the recording into this stretch of the source (simulated_capture)
            "mic_audio": str(audio_path.relative_to(ROOT)) if audio_path else None,  # run_job muxes it in
            "stages": {s: ("done" if s == "upload" and not window and not audio_path else "queued") for s in STAGES}}
@@ -544,7 +550,15 @@ def publish(guide_id: str, body: Publish, user: str = USER) -> dict:
 
 @app.get("/guides/{guide_id}/cover.jpg")
 def guide_cover(guide_id: str, user: str = USER) -> FileResponse:
-    return FileResponse(guides.cover(visible(guide_id, user)[0]), media_type="image/jpeg")
+    return FileResponse(cover_file(visible(guide_id, user)[0]), media_type="image/jpeg")
+
+
+def cover_file(guide, index: int | None = None) -> Path:
+    """A missing frame (or a guide without steps) is a 404, not a 500."""
+    try:
+        return guides.cover(guide, index)
+    except FileNotFoundError as e:
+        raise HTTPException(404, str(e))
 
 
 @app.get("/guides/{guide_id}/steps/{index}/cover.jpg")
@@ -552,7 +566,7 @@ def step_cover(guide_id: str, index: int, user: str = USER) -> FileResponse:
     guide = visible(guide_id, user)[0]
     if not any(s.index == index for s in guide.steps):
         raise HTTPException(404, f"no step {index}")
-    return FileResponse(guides.cover(guide, index), media_type="image/jpeg")
+    return FileResponse(cover_file(guide, index), media_type="image/jpeg")
 
 
 @app.get("/guides/{guide_id}/clips/{index}.mp4")

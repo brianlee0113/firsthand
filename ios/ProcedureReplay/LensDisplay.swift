@@ -36,6 +36,11 @@ final class LensController {
   private var session: DeviceSession?
   private var display: Display?
   private let tokens = ListenerTokenBag()
+  /// Bumped by `disconnect()`: a `connect()` still awaiting sees it changed and stops instead of finishing on
+  /// glasses that were already unpaired (which left `state` at `.ready` and blocked the next connect).
+  private var generation = 0
+  /// Resumes whichever start-up wait `connect()` is in, so `disconnect()` never leaves it hanging.
+  private var abortWait: (() -> Void)?
   // A display-capable selector, created before pairing so it sees the device appear.
   private let selector = AutoDeviceSelector(wearables: Wearables.shared, filter: { $0.supportsDisplay() })
 
@@ -43,6 +48,9 @@ final class LensController {
   func connect() async {
     guard state == .idle else { return }
     state = .connecting
+    generation += 1
+    let gen = generation
+    func check() throws { if gen != generation { throw CancellationError() } }
     do {
       MockDeviceKit.shared.enable()
       let glasses = try MockDeviceKit.shared.pairGlasses(model: .metaRayBanDisplay)
@@ -50,17 +58,25 @@ final class LensController {
       glasses.unfold()
       glasses.don()
       self.glasses = glasses
-      for await device in selector.activeDeviceStream() where device != nil { break }
+      for await device in selector.activeDeviceStream() where device != nil || gen != generation { break }
+      try check()
       // The docs: create the Display session once the device is connected and compatible.
       for _ in 0..<100 {
         if let d = Wearables.shared.deviceForIdentifier(glasses.deviceIdentifier),
           d.linkState == .connected, d.compatibility() == .compatible { break }
         try? await Task.sleep(for: .milliseconds(100))
+        try check()
       }
       let session = try Wearables.shared.createSession(deviceSelector: selector)
       self.session = session
       try await withCheckedThrowingContinuation { (done: CheckedContinuation<Void, Error>) in
         var resumed = false
+        abortWait = {
+          if !resumed {
+            resumed = true
+            done.resume(throwing: CancellationError())
+          }
+        }
         session.statePublisher.listen { s in
           Task { @MainActor in
             if s == .started, !resumed {
@@ -74,10 +90,18 @@ final class LensController {
           done.resume(throwing: error)
         }
       }
+      abortWait = nil
+      try check()
       let display = try session.addDisplay()
       self.display = display
       await withCheckedContinuation { (done: CheckedContinuation<Void, Never>) in
         var resumed = false
+        abortWait = {
+          if !resumed {
+            resumed = true
+            done.resume()
+          }
+        }
         display.statePublisher.listen { s in
           Task { @MainActor in
             if s == .started, !resumed {
@@ -88,6 +112,8 @@ final class LensController {
         }.store(in: tokens)
         display.start()
       }
+      abortWait = nil
+      try check()
       // Voice is optional (experimental capability): the lens buttons work without it.
       if let speech = try? session.addSpeech() {
         self.speech = speech
@@ -99,6 +125,7 @@ final class LensController {
       }
       state = .ready
     } catch {
+      guard gen == generation else { return }  // turned off meanwhile: disconnect() already set .idle
       state = .failed("Couldn't connect the Display glasses: \(error)")
     }
   }
@@ -167,6 +194,10 @@ final class LensController {
   }
 
   func disconnect() {
+    generation += 1
+    let abort = abortWait
+    abortWait = nil
+    abort?()
     speech?.stop()
     speech = nil
     display?.stop()

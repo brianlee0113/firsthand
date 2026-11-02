@@ -158,7 +158,7 @@ struct GuideView: View {
         .accessibilityLabel("Back")
         Spacer()
         // The text that travels with the link in Messages or Mail.
-        ShareLink(item: API.url("/guides/\(guide.guideId)"),
+        ShareLink(item: API.shareURL("/guides/\(guide.guideId)"),
                   subject: Text("Learn it firsthand: \(guide.title)"),
                   message: Text("Learn it firsthand: \(guide.title)"),
                   preview: SharePreview("Learn it firsthand: \(guide.title)")) {

@@ -12,7 +12,11 @@ struct StoryFeedView: View {
   let first: String
   let startStep: Int?
 
+  /// The guide that plays: the page that is mostly on screen. Read from what's visible, not from `position`,
+  /// which could report the next page while the story opened, so its clip played (and spoke) off screen
+  /// while the tapped guide's summary sat still.
   @State private var current: String?
+  @State private var position: ScrollPosition
   /// Nil until the trainee touches the sound button; until then each guide follows its own default
   /// (on for guides built with narration).
   @State private var soundOn: Bool?
@@ -24,6 +28,7 @@ struct StoryFeedView: View {
     first = start.guideId
     self.startStep = startStep
     _current = State(initialValue: start.guideId)
+    _position = State(initialValue: ScrollPosition(id: start.guideId))
   }
 
   var body: some View {
@@ -43,7 +48,10 @@ struct StoryFeedView: View {
       .scrollTargetLayout()
     }
     .scrollTargetBehavior(.paging)
-    .scrollPosition(id: $current)
+    .scrollPosition($position)
+    .onScrollTargetVisibilityChange(idType: String.self, threshold: 0.6) { visible in
+      if let id = visible.first, id != current { current = id }
+    }
     .scrollIndicators(.hidden)
     .ignoresSafeArea()
     .background(Color.black)
@@ -94,6 +102,8 @@ private struct StoryPage: View {
   private static let flipSeconds = 1.0
   private static let flipMax = 4
   @State private var showSteps = false
+  /// A full-screen cover (Steps list, an author's profile) is over this page: it disappears without leaving the story.
+  @State private var covered = false
   @State private var lensMode = LensMode()
   @Environment(\.openAuthor) private var openAuthor
 
@@ -156,8 +166,10 @@ private struct StoryPage: View {
       summaryTask?.cancel()
       flipTask?.cancel()
       player.clear()
-      lensMode.turnOff()
+      // Covered by the Steps list or a profile: keep the glasses on, the trainee comes back to this guide.
+      if !covered { lensMode.turnOff() }
     }
+    .onAppear { covered = false }
     .fullScreenCover(isPresented: $showSteps) {
       NavigationStack { GuideView(model: GuideModel(guideId: guideId)) }.edgeSwipeBack()
     }
@@ -388,7 +400,7 @@ private struct StoryPage: View {
   private func header(_ response: GuideResponse) -> some View {
     let meta = response.meta
     return HStack(spacing: 8) {
-      Button { openAuthor(meta.author) } label: {
+      Button { covered = true; openAuthor(meta.author) } label: {
         HStack(spacing: 8) {
           Text(meta.authorName.split(separator: " ").compactMap(\.first).prefix(2).map(String.init).joined())
             .font(.eyebrow).foregroundStyle(.white)
@@ -566,7 +578,7 @@ private struct StoryPage: View {
       railButton(r.saved ? "bookmark.fill" : "bookmark", "\(r.saves)", label: r.saved ? "Remove from saved" : "Save") {
         Task { await model.toggle(.save) }
       }
-      ShareLink(item: API.url("/guides/\(guideId)"),
+      ShareLink(item: API.shareURL("/guides/\(guideId)"),
                 subject: Text("Learn it firsthand: \(response.guide.title)"),
                 message: Text("Learn it firsthand: \(response.guide.title)"),
                 preview: SharePreview("Learn it firsthand: \(response.guide.title)")) {
@@ -574,6 +586,7 @@ private struct StoryPage: View {
       }
       railButton("list.bullet", "Steps", label: "All steps") {
         player.player.pause()
+        covered = true
         withoutAnimation { showSteps = true }
       }
     }
