@@ -6,6 +6,9 @@ Commons), and saves a ≤720p MP4 under data/raw/narrated/. A video whose licens
 
     uv run python scripts/download_feed_videos.py --dry-run
     uv run python scripts/download_feed_videos.py --max-minutes 20
+    uv run python scripts/download_feed_videos.py --videos yt_LPwPomA7BfM   # just the simulator's glasses feed
+
+Needs yt-dlp on the PATH (`brew install yt-dlp`, or prefix with `uv run --with yt-dlp`).
 
 Then scripts/seed_feed_guides.py builds guides from whatever is downloaded.
 """
@@ -45,7 +48,7 @@ def registered() -> tuple[set[str], set[str]]:
     return manifest, attribution
 
 
-def pending(max_minutes: float) -> list[dict]:
+def pending(max_minutes: float, only: set[str] | None = None) -> list[dict]:
     """Candidates still missing their file, their manifest row or their ATTRIBUTION entry. A run stopped
     between download and register (or a file deleted later) is repaired, not skipped or registered twice."""
     manifest, attribution = registered()
@@ -53,6 +56,8 @@ def pending(max_minutes: float) -> list[dict]:
     with CANDIDATES.open() as f:
         for row in csv.DictReader(f):
             vid = row["video_id"]
+            if only is not None and vid not in only:
+                continue
             if not row["label"].startswith("학습"):
                 continue
             if any(c in row["creator"] for c in HELD_OUT_CREATORS):
@@ -60,9 +65,18 @@ def pending(max_minutes: float) -> list[dict]:
             have_file = (NARRATED / f"{vid}.mp4").exists()
             if have_file and vid in manifest and vid in attribution:
                 continue
-            if not have_file and int(row["duration_s"]) > max_minutes * 60:
+            if not have_file and only is None and int(row["duration_s"]) > max_minutes * 60:
                 continue
             out.append(row)
+    if only:  # ids registered by hand (not from the candidate list), e.g. the simulator's glasses feed
+        seen = {r["video_id"] for r in out} | {r["video_id"] for r in csv.DictReader(CANDIDATES.open())}
+        with MANIFEST.open() as f:
+            for row in csv.DictReader(f):
+                vid = row["video_id"]
+                if vid in only and vid not in seen and not (NARRATED / f"{vid}.mp4").exists() \
+                        and row["local_path"] == f"data/raw/narrated/{vid}.mp4":
+                    out.append({"video_id": vid, "source_url": row["source_url"], "channel_url": "",
+                                "category": "", "duration_s": "0", "creator": row["creator"]})
     return out
 
 
@@ -113,10 +127,11 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--max-minutes", type=float, default=20)
     ap.add_argument("--workers", type=int, default=4)
+    ap.add_argument("--videos", help="comma-separated video ids from data/feed_candidates.csv (ignores --max-minutes)")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
-    rows = pending(args.max_minutes)
+    rows = pending(args.max_minutes, set(args.videos.split(",")) if args.videos else None)
     print(f"{len(rows)} candidates to download")
     for r in rows:
         print(f"  {r['video_id']}  {r['category']:<20} {int(r['duration_s']):>5}s  {r['creator']}")

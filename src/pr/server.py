@@ -295,7 +295,32 @@ def checklist_builder(job: dict, set_stage) -> guides.Guide:
         set_stage(stage)
         time.sleep(STAGE_DELAY_S)
     task = job["task"]
-    return guides.from_checklist(task, job["guide_id"], DEFAULT_CATEGORY.get(task, "other"))
+    if (CHECKLISTS / f"{task}.json").exists():
+        return guides.from_checklist(task, job["guide_id"], DEFAULT_CATEGORY.get(task, "other"))
+    return split_recording(job)
+
+
+def split_recording(job: dict) -> guides.Guide:
+    """Offline stand-in for a task without a committed checklist (e.g. the simulator's faucet feed): the recording
+    itself, cut at the instructor's Mark step times (or into three equal parts), with placeholder text. No model
+    call, so a fresh clone can run the whole app flow without an API key."""
+    from pr.frames import probe
+
+    duration = probe(local_path(find_row(job["video_id"])))["duration"]
+    cuts = sorted(t for t in job.get("marks") or [] if 1.0 < t < duration - 1.0) or \
+        [duration / 3, 2 * duration / 3]
+    bounds = [0.0, *cuts, duration]
+    steps = [guides.Step(
+        index=i + 1, title=f"Step {i + 1}",
+        instruction="Offline stand-in (PR_BUILDER=checklist): Muse Spark writes the real instruction.",
+        done_when="Placeholder: the step's visible end state.", start_s=a, end_s=b,
+        clip=guides.padded(a, b, duration), cover_s=(a + b) / 2) for i, (a, b) in enumerate(zip(bounds, bounds[1:]))]
+    name = load_tasks().get(job["task"], {}).get("name", job["task"])
+    return guides.Guide(
+        guide_id=job["guide_id"], source_video_id=job["video_id"], duration_s=duration, title=name,
+        summary="Offline stand-in: the recording cut at its marks, without a model call.", category="other",
+        steps=steps, inputs_provided={"video": True, "transcript": False, "on_screen_text": False},
+        provenance={"model": "", "builder": "split_recording", "task": job["task"], "created_at": guides.now()})
 
 
 build_guide = checklist_builder if os.environ.get("PR_BUILDER") == "checklist" else b2_builder
@@ -347,7 +372,10 @@ def source_transcript(video_id: str) -> dict:
         require_allowed(video_id)
     except LicenseError as e:
         raise HTTPException(404, str(e))
-    t = transcribe(video_id)
+    try:
+        t = transcribe(video_id)
+    except SystemExit as e:  # no META_API_KEY and nothing cached: the app records without the simulated caption
+        raise HTTPException(503, str(e))
     return {"video_id": video_id, "model": t.get("model"), "lines": caption_lines(t["turns"])}
 
 

@@ -219,6 +219,8 @@ def summarize(which: str, cfg: Config, runs: list[int], main: list[dict], base: 
 
 
 def cost_since(t0: str) -> float:
+    if not (RESULTS / "costs.csv").exists():  # a fresh clone, or a --dry-run that made no calls
+        return 0.0
     with open(RESULTS / "costs.csv") as f:
         return sum(float(r["est_usd"]) for r in csv.DictReader(f) if r["ts"] >= t0)
 

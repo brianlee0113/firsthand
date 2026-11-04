@@ -110,6 +110,25 @@ cp .env.example .env          # then put your Meta Model API key in META_API_KEY
 uv run python -m pr.license_check
 ```
 
+### Quick start (no API key)
+
+Checked on a fresh clone. Without a key the server runs an offline stand-in for Muse Spark (`PR_BUILDER=checklist`):
+a recording is cut at its "Mark step" times with placeholder text, so the whole app flow runs end to end. Also
+needs Xcode 26 with an iOS 26 simulator, `brew install xcodegen`, and network access for one CC BY video.
+
+```bash
+for t in tests/test_build.py tests/test_contract.py tests/test_guide_eval.py tests/test_guides_api.py \
+         tests/test_mic_audio.py tests/test_score.py tests/test_judge.py tests/test_vote.py; do uv run python $t; done
+uv run --with yt-dlp python scripts/download_feed_videos.py --videos yt_LPwPomA7BfM   # the simulated glasses feed
+scripts/make_mock_feed.sh yt_LPwPomA7BfM
+uv run python scripts/seed_guides.py                          # sample guides so the Feed isn't empty
+PR_BUILDER=checklist uv run uvicorn pr.server:app --port 8000
+cd ios && xcodegen && open ProcedureReplay.xcodeproj           # run on an iOS 26 simulator: Record → Draft → Publish → Feed
+```
+
+The evaluation numbers above come from the committed summaries in `results/`; rerunning them needs `META_API_KEY`
+and the dataset videos ([Data](#data)). Real outputs of the Muse Spark builder: [docs/examples/](docs/examples/).
+
 ## iPhone app
 
 SwiftUI, iOS 26 (Liquid Glass), with the [Meta Wearables Device Access Toolkit](https://github.com/facebook/meta-wearables-dat-ios)
@@ -158,6 +177,7 @@ would be from real glasses. It also plays the feed video's transcript through th
 Run it:
 
 ```bash
+uv run --with yt-dlp python scripts/download_feed_videos.py --videos yt_LPwPomA7BfM
 scripts/make_mock_feed.sh yt_LPwPomA7BfM    # the glasses feed: a narrated first-person video (HEVC, 540x960, 30 fps)
 uv run python scripts/seed_guides.py        # optional: three demo guides in the feed
 uv run python scripts/download_feed_videos.py && uv run python scripts/seed_feed_guides.py --budget 3   # optional: the CC BY feed
