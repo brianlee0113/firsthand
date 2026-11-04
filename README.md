@@ -22,8 +22,9 @@ Formerly ProcedureReplay: the Python package `pr`, the Xcode target and the bund
   per-video tuning. None failed. They fill the app's Feed.
 - **About 2 cents and 85 seconds of model time per guide** (median over those 47; one Muse Voice Transcribe call
   and one Muse Spark call; the most was $0.036 and 158 s).
-- **Measured against human step labels** on factory and kitchen footage, with a baseline, a held-out test set
-  and a blind human check of the AI judge ([Guide builder and its evaluation](#guide-builder-and-its-evaluation)).
+- **Beats an equal-length-cuts baseline on 28 of 30 held-out test videos**, scored against human step labels on
+  factory (PC repair, drill bit) and kitchen footage: step hit F1 0.35 vs 0.19, 0.71 vs 0.34, 0.49 vs 0.19
+  ([Guide builder and its evaluation](#guide-builder-and-its-evaluation)).
 - Real outputs, unedited: [docs/examples/](docs/examples/).
 
 Meta's multimodal model (Muse Spark, with Muse Voice Transcribe for the narration) splits the recording into
@@ -56,9 +57,24 @@ cuts overlaps and drops quotes that aren't in the transcript; the raw answer is 
 - **Splits** (`config/splits.yaml`): `iterate` for changes, `dev` to compare configurations, `test` once with
   the frozen configuration (`--i-am-at-b4`).
 
-Dev set (76 videos × 3 runs, config `tr-ost-mute`, about $4.4 of API calls), step hit F1 pooled per domain:
+**Held-out test set** (30 videos from participants never run before, 3 runs each, configuration frozen
+beforehand as `tr-ost-mute-cat`; run once, $1.90 of API calls, no failures). Step hit F1 pooled per domain:
 
-<img src="docs/assets/results_dev.svg" alt="Step hit F1 on the dev set: PC repair 0.44 vs 0.25 (better on 30 of 32 videos), drill bit 0.57 vs 0.37 (23 of 35), omelet 0.39 vs 0.15 (7 of 9)." width="100%">
+<img src="docs/assets/results_test.svg" alt="Step hit F1 on the held-out test set: PC repair 0.35 vs 0.19 (better on 12 of 14 videos), drill bit 0.71 vs 0.34 (8 of 8), omelet 0.49 vs 0.19 (8 of 8)." width="100%">
+
+| Domain | Videos | Guide builder | Uniform + captions | Videos where the builder wins | Temporal IoU F1 (builder / uniform) | Category right |
+| --- | --- | --- | --- | --- | --- | --- |
+| PC repair | 14 | 0.35 (0.31–0.37) | 0.19 | 12/14 | 0.67 / 0.66 | 42/42 |
+| Drill bit | 8 | 0.71 (0.64–0.78) | 0.34 | 8/8 | 0.81 / 0.65 | 24/24 |
+| Omelet | 8 | 0.49 (0.46–0.52) | 0.19 | 8/8 | 0.66 / 0.50 | 24/24 |
+
+The guide builder beats the baseline on 28 of 30 test videos and in every domain (range = lowest to highest
+of the 3 runs). On PC repair the judge-free temporal IoU F1 is barely above the baseline (0.67 vs 0.66): the
+builder finds the right steps more often than its boundaries are tighter. Every metric and every video:
+[results/summary_guides_test.md](results/summary_guides_test.md).
+
+**Dev set** (76 videos × 3 runs, the earlier configuration `tr-ost-mute`, about $4.4), where the
+configurations were compared; [results/summary_guides_dev.md](results/summary_guides_dev.md):
 
 | Domain | Videos | Guide builder | Uniform + captions | Videos where the builder wins | Temporal IoU F1 (builder / uniform) |
 | --- | --- | --- | --- | --- | --- |
@@ -66,17 +82,20 @@ Dev set (76 videos × 3 runs, config `tr-ost-mute`, about $4.4 of API calls), st
 | Drill bit | 35 | 0.57 | 0.37 | 23/35 | 0.76 / 0.66 |
 | Omelet | 9 | 0.39 | 0.15 | 7/9 | 0.62 / 0.49 |
 
-Every metric and every video, per run: [results/summary_guides_dev.md](results/summary_guides_dev.md).
+**How the configuration was chosen.** `scripts/compare_configs.py` compares configurations from stored results
+(paired per video, sign test, bootstrap interval) on the iterate set only. Dropping the on-screen-text
+instruction made no difference, and turning the audio on helped PC repair by +0.05 F1 but not the other two, so
+the audio stays off. Defining each category in the prompt raised PC repair from 0.47 to 0.54 and fixed its
+category labels (15/96 right before, 48/48 after), and was kept. A second pass that tightens each step's bounds
+lowered every domain (PC repair 0.40), so it was dropped
+([results/compare_configs_iterate.md](results/compare_configs_iterate.md)). The test set was opened only after
+that choice.
 
-The judge is the builder's own model, so `scripts/judge_check.py` draws 30 items for a blind human check
-([results/judge_check/dev/agreement.txt](results/judge_check/dev/agreement.txt)). Every
-one of the 15 disagreements was the judge saying No where the human said Yes. That suggests the scores above
-are, if anything, too low. "Same action" and "done when is observable" disagree 15% or more in every domain,
-so those two scores need more human review before they can be trusted alone. `scripts/compare_configs.py`
-compares configurations from stored results (paired per video, sign test, bootstrap interval; the
-latest round is in [results/compare_configs_iterate.md](results/compare_configs_iterate.md)). In the first
-round, dropping the on-screen-text instruction made no difference; turning the audio on helped PC repair by
-+0.05 F1 and didn't help the other two. No configuration is frozen yet, and the test set hasn't been opened.
+**Checking the judge.** The judge is the builder's own model, so `scripts/judge_check.py` draws 30 items for a
+blind human check ([results/judge_check/dev/agreement.txt](results/judge_check/dev/agreement.txt)). Every one
+of the 15 disagreements was the judge saying No where the human said Yes, so the scores above are, if anything,
+too low. "Same action" and "done when is observable" disagree 15% or more in every domain, so those two scores
+need more human review before they can be trusted alone.
 
 ## Setup
 

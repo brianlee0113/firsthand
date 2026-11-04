@@ -45,7 +45,7 @@ def svg(rows: list[dict], subtitle: str) -> str:
 
     out = [f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" '
            f'aria-labelledby="t d">',
-           '<title id="t">Step hit F1: ProcedureReplay vs. cutting the video into equal parts</title>',
+           '<title id="t">Step hit F1: Firsthand vs. cutting the video into equal parts</title>',
            '<desc id="d">' + escape("; ".join(
                f"{r['domain']}: {r['ours']:.2f} vs {r['base']:.2f}, better on {r['wins']} of {r['n']} videos"
                for r in rows)) + "</desc>",
@@ -65,7 +65,7 @@ def svg(rows: list[dict], subtitle: str) -> str:
     # legend
     lx = left
     out += [f'<rect class="ours" x="{lx}" y="72" width="12" height="12" rx="3"/>',
-            f'<text class="ink" x="{lx + 18}" y="82.5" font-size="12.5">ProcedureReplay (Muse Spark)</text>',
+            f'<text class="ink" x="{lx + 18}" y="82.5" font-size="12.5">Firsthand (Muse Spark)</text>',
             f'<rect class="base" x="{lx + 210}" y="72" width="12" height="12" rx="3"/>',
             f'<text class="ink" x="{lx + 228}" y="82.5" font-size="12.5">Equal-length cuts + captions</text>']
     gy0, gy1 = top + 8, top + group * len(rows)

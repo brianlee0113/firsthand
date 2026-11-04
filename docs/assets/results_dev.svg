@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 360" width="760" height="360" role="img" aria-labelledby="t d">
-<title id="t">Step hit F1: ProcedureReplay vs. cutting the video into equal parts</title>
+<title id="t">Step hit F1: Firsthand vs. cutting the video into equal parts</title>
 <desc id="d">PC repair: 0.44 vs 0.25, better on 30 of 32 videos; Drill bit: 0.57 vs 0.37, better on 23 of 35 videos; Omelet: 0.39 vs 0.15, better on 7 of 9 videos</desc>
 <style>
   .bg{fill:#ffffff} .ink{fill:#1b1b1f} .mute{fill:#6b6b74} .grid{stroke:#e6e6e2}
@@ -14,7 +14,7 @@
 <text class="ink" x="24" y="36" font-size="19" font-weight="700">How many of the expert's steps the guide gets right</text>
 <text class="mute" x="24" y="60" font-size="13">dev set · hit = covers at least half of an expert-labelled step, clip not padded, judge sees the same action</text>
 <rect class="ours" x="190" y="72" width="12" height="12" rx="3"/>
-<text class="ink" x="208" y="82.5" font-size="12.5">ProcedureReplay (Muse Spark)</text>
+<text class="ink" x="208" y="82.5" font-size="12.5">Firsthand (Muse Spark)</text>
 <rect class="base" x="400" y="72" width="12" height="12" rx="3"/>
 <text class="ink" x="418" y="82.5" font-size="12.5">Equal-length cuts + captions</text>
 <line class="grid" x1="190.0" y1="100" x2="190.0" y2="314" stroke-width="1"/>
