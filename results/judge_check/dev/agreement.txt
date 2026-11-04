@@ -1,0 +1,26 @@
+
+PC repair
+  same_action: 6/8  <- disagreement >= 15%: draw more (§4.2)
+  action_matches: 6/6
+  objects_correct: 6/6
+  done_when_observable: 3/6  <- disagreement >= 15%: draw more (§4.2)
+  actionable: 6/6
+  unmatched steps where the human found a match: 1/2
+
+Drill bit
+  same_action: 6/8  <- disagreement >= 15%: draw more (§4.2)
+  action_matches: 6/6
+  objects_correct: 6/6
+  done_when_observable: 4/6  <- disagreement >= 15%: draw more (§4.2)
+  actionable: 6/6
+  unmatched steps where the human found a match: 2/2
+
+Omelet
+  same_action: 6/8  <- disagreement >= 15%: draw more (§4.2)
+  action_matches: 4/6  <- disagreement >= 15%: draw more (§4.2)
+  objects_correct: 5/6  <- disagreement >= 15%: draw more (§4.2)
+  done_when_observable: 5/6  <- disagreement >= 15%: draw more (§4.2)
+  actionable: 6/6
+  unmatched steps where the human found a match: 1/2
+
+answered 30/30

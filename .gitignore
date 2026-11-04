@@ -18,11 +18,19 @@ data/manifest_app.csv
 *.webm
 *.avi
 
-# generated results: only summary.md, PNG charts and checklists are committed
+# generated results: only the summaries the README cites, PNG charts and checklists are committed
 results/*
 !results/summary.md
 !results/summary_dev.md
 !results/summary_dev_audio.md
+!results/summary_guides_dev.md
+!results/summary_guides_test.md
+!results/compare_configs_iterate.md
+!results/judge_check/
+results/judge_check/*
+!results/judge_check/dev/
+results/judge_check/dev/*
+!results/judge_check/dev/agreement.txt
 !results/*.png
 !results/checklists/
 results/checklists/*

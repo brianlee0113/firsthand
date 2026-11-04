@@ -1,0 +1,176 @@
+{
+  "contract_version": 1,
+  "guide_id": "feed_28b23c6ad3",
+  "source_video_id": "yt_pCqSCDIGiqM",
+  "duration_s": 740.4,
+  "language": "en",
+  "title": "Throw a clay vase on a potter's wheel",
+  "summary": "This guide throws a small vessel from 1-2 pounds of clay using the five basics: wedge, center, open/widen, pull, and refine. Do each step well before moving on, because poor centering and thin tops cannot be fixed later and will only magnify flaws.",
+  "category": "crafts",
+  "category_alternatives": [],
+  "tools": [
+    "pottery wheel",
+    "sponge",
+    "metal rib"
+  ],
+  "steps": [
+    {
+      "index": 1,
+      "title": "Wedge the clay",
+      "instruction": "Knead 1 to 2 pounds of clay on a ware board by pressing, folding and rolling repeatedly. Form it into a smooth round ball.",
+      "done_when": "the clay is uniform, air-free and formed into a smooth ball ready to throw",
+      "start_s": 164.8,
+      "end_s": 203.6,
+      "clip": {
+        "start_s": 163.8,
+        "end_s": 204.6
+      },
+      "cover_s": 184.2,
+      "key_objects": [
+        "clay",
+        "ware board"
+      ],
+      "quote": null,
+      "on_screen_text": []
+    },
+    {
+      "index": 2,
+      "title": "Center the clay",
+      "instruction": "Slam the ball near the middle of the wheel, wet your hands and the clay well and run the wheel fast. Press with steady side and top pressure, coning up and back down, until the clay holds center.",
+      "done_when": "the clay mound spins true on center with no visible wobble",
+      "start_s": 227.6,
+      "end_s": 331.4,
+      "clip": {
+        "start_s": 226.6,
+        "end_s": 332.4
+      },
+      "cover_s": 279.5,
+      "key_objects": [
+        "clay",
+        "pottery wheel",
+        "water"
+      ],
+      "quote": {
+        "text": "I like to have some pressure from the top and pressure from the side and then you can kind of go back and forth between those two levers",
+        "turn_ids": [
+          1
+        ],
+        "start_s": 248.96,
+        "end_s": 257.58
+      },
+      "on_screen_text": []
+    },
+    {
+      "index": 3,
+      "title": "Open and widen the base",
+      "instruction": "Press one finger straight down into the center of the spinning clay without going through to the wheel. Pull outward slightly to widen the base to the desired starting width.",
+      "done_when": "a centered opening with an intact floor is widened to the starting diameter",
+      "start_s": 336.4,
+      "end_s": 385.4,
+      "clip": {
+        "start_s": 335.4,
+        "end_s": 386.4
+      },
+      "cover_s": 360.9,
+      "key_objects": [
+        "clay",
+        "pottery wheel"
+      ],
+      "quote": {
+        "text": "i am going to use one finger to move that clay down and i don't want to go all the way down to the bottom i want to leave a little bit",
+        "turn_ids": [
+          4
+        ],
+        "start_s": 347.65,
+        "end_s": 356.2
+      },
+      "on_screen_text": []
+    },
+    {
+      "index": 4,
+      "title": "Pull the walls up",
+      "instruction": "Keep the clay wet with a sponge, pinch at the very bottom and draw clay steadily upward. Do 2 to 3 pulls, keeping the form wide at the bottom to narrower at the top.",
+      "done_when": "the walls are thin, even and tall with enough thickness left at the top for shaping",
+      "start_s": 400.2,
+      "end_s": 546.0,
+      "clip": {
+        "start_s": 399.2,
+        "end_s": 547.0
+      },
+      "cover_s": 473.1,
+      "key_objects": [
+        "clay",
+        "pottery wheel",
+        "sponge"
+      ],
+      "quote": {
+        "text": "I'm I'm going to start pinching from the the very bottom and then as the wheel is turning I'm going to slowly get some of that clay up and the most important part of the pulling stage of throwing is to go wide at the bottom to skinnier at top",
+        "turn_ids": [
+          8
+        ],
+        "start_s": 428.61,
+        "end_s": 452.86
+      },
+      "on_screen_text": []
+    },
+    {
+      "index": 5,
+      "title": "Refine into a finished shape",
+      "instruction": "Sponge out excess water and refine the lip with your fingers. Use your fingers and a metal rib to straighten to a cylinder and shape it into the final vase, adding water if your hand drags.",
+      "done_when": "a clean-lipped, smooth thin-walled cylinder/vase stands finished on the board",
+      "start_s": 547.0,
+      "end_s": 669.4,
+      "clip": {
+        "start_s": 546.0,
+        "end_s": 670.4
+      },
+      "cover_s": 608.2,
+      "key_objects": [
+        "clay",
+        "pottery wheel",
+        "sponge",
+        "metal rib"
+      ],
+      "quote": {
+        "text": "And you remember remember when I said in the beginning that you really want to make sure you don't get the top too thin that's especially important for the refining part because right now if I want to bring if I want to collar the top in if I don't have enough clay up there then this won't work.",
+        "turn_ids": [
+          16
+        ],
+        "start_s": 645.06,
+        "end_s": 664.3
+      },
+      "on_screen_text": []
+    }
+  ],
+  "inputs_provided": {
+    "video": true,
+    "transcript": true,
+    "on_screen_text": true,
+    "audio": false,
+    "step_names": false
+  },
+  "provenance": {
+    "model": "muse-spark-1.3-contributor",
+    "prompt_version": "b2-v1",
+    "config": {
+      "transcript": true,
+      "on_screen_text": true,
+      "audio": false,
+      "seed_names": null,
+      "model": null,
+      "category_defs": true,
+      "refine": false,
+      "refine_split": true
+    },
+    "builder": "pr.build",
+    "created_at": "2026-11-01T17:26:46+00:00",
+    "transcriber": "muse-voice-transcribe-1.0",
+    "transcript_id": "results/transcripts/yt_pCqSCDIGiqM.json",
+    "dropped_quotes": [
+      {
+        "index": 1,
+        "reason": "quoted words fall outside the clip"
+      }
+    ]
+  }
+}

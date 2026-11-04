@@ -15,6 +15,17 @@ app playing it as a story (iOS simulator). The glasses feed is simulated with cl
 videos (credits in [ATTRIBUTION.md](ATTRIBUTION.md)). Music: Soundsurfer, "Stylish Hip Hop" (Pixabay).
 Formerly ProcedureReplay: the Python package `pr`, the Xcode target and the bundle ID keep that name.</sub>
 
+**At a glance**
+
+- **47 guides from 47 Creative Commons first-person videos** (1.5 to 17 minutes each, 5.1 hours in all: repair,
+  cooking, crafts, assembly), built by the same code and configuration as the app's own recordings, with no
+  per-video tuning. None failed. They fill the app's Feed.
+- **About 2 cents and 85 seconds of model time per guide** (median over those 47; one Muse Voice Transcribe call
+  and one Muse Spark call; the most was $0.036 and 158 s).
+- **Measured against human step labels** on factory and kitchen footage, with a baseline, a held-out test set
+  and a blind human check of the AI judge ([Guide builder and its evaluation](#guide-builder-and-its-evaluation)).
+- Real outputs, unedited: [docs/examples/](docs/examples/).
+
 Meta's multimodal model (Muse Spark, with Muse Voice Transcribe for the narration) splits the recording into
 steps and writes, for each step, an instruction, a "done when" check and the instructor's own words; the server
 cuts one looping clip per step. The instructor reviews the draft, publishes it as public or private, and public
@@ -22,7 +33,7 @@ guides appear in a feed where people can like and save them. The same app covers
 changing a drill bit) and everyday tasks (cooking, fixing a faucet).
 
 An earlier part of the project, still in this repo, checks a trainee's own video against a guide and flags
-**skipped** or **out-of-order** steps (Trainee review pipeline below).
+**skipped** or **out-of-order** steps ([Earlier exploration](#earlier-exploration-reviewing-a-trainees-video)).
 
 Built for the Meta Global AI Developer Hackathon (indie track, "Push the Frontier", manufacturing),
 Oct 26 – Nov 4, 2026.
@@ -55,37 +66,17 @@ Dev set (76 videos × 3 runs, config `tr-ost-mute`, about $4.4 of API calls), st
 | Drill bit | 35 | 0.57 | 0.37 | 23/35 | 0.76 / 0.66 |
 | Omelet | 9 | 0.39 | 0.15 | 7/9 | 0.62 / 0.49 |
 
-The judge is the builder's own model, so `scripts/judge_check.py` draws 30 items for a blind human check. Every
+Every metric and every video, per run: [results/summary_guides_dev.md](results/summary_guides_dev.md).
+
+The judge is the builder's own model, so `scripts/judge_check.py` draws 30 items for a blind human check
+([results/judge_check/dev/agreement.txt](results/judge_check/dev/agreement.txt)). Every
 one of the 15 disagreements was the judge saying No where the human said Yes. That suggests the scores above
 are, if anything, too low. "Same action" and "done when is observable" disagree 15% or more in every domain,
 so those two scores need more human review before they can be trusted alone. `scripts/compare_configs.py`
-compares configurations from stored results (paired per video, sign test, bootstrap interval). In the first
+compares configurations from stored results (paired per video, sign test, bootstrap interval; the
+latest round is in [results/compare_configs_iterate.md](results/compare_configs_iterate.md)). In the first
 round, dropping the on-screen-text instruction made no difference; turning the audio on helped PC repair by
 +0.05 F1 and didn't help the other two. No configuration is frozen yet, and the test set hasn't been opened.
-
-## Trainee review pipeline (earlier part)
-
-```
-expert's step names ─┐
-reference video ─► license gate ─► 5 fps proxy ─► Muse Spark 1.3 ─► checklist: steps, "done when", times
-trainee video   ─► license gate ─► 5 fps proxy ─► Muse Spark 1.3 (whole checklist, then each "not done"
-                                                  step again on its own) ─► per step: done? when? evidence
-                                                ─► judge (order rules) ─► ok / missing / out_of_order
-evaluation: edited videos with a known injected flaw (cut or swap) ─► detected X/6, false flags Y/2
-```
-
-- **Muse Spark 1.3** (Meta Model API, Responses API + JSON-schema structured output) writes the checklist
-  from the reference video and decides, for the trainee video, which steps were done and when.
-- The review sends the trainee video **without its sound**. Meta's docs say audio understanding in Muse Spark 1.3
-  is not fully supported, and on the dev set the muted review found more flaws (5.3 vs 4.0 of 9, mean of 3 runs)
-  with no more false flags. Muse Voice Transcribe found no speech in the dataset videos, so there was no
-  narration to add ([results/summary_dev_audio.md](results/summary_dev_audio.md)).
-- **SAM 3.1** (Meta Model API) is *not* part of the decision: smoke tests showed it can't see small parts
-  (RAM, coin battery) on 480p glasses footage. It is used for evidence visuals (object masks) only.
-- Videos are re-encoded to a 5 fps 720p proxy with a burned-in clock, so frame index ↔ seconds is exact
-  for both models and SAM's per-frame cost stays low.
-
-Success criterion: detect the injected flaw in ≥5 of 6 edited videos, with 0 false flags on 2 unedited videos.
 
 ## Setup
 
@@ -101,6 +92,11 @@ uv run python -m pr.license_check
 
 SwiftUI, iOS 26 (Liquid Glass), with the [Meta Wearables Device Access Toolkit](https://github.com/facebook/meta-wearables-dat-ios)
 1.0.1. The app talks to the Mac server (`src/pr/server.py`), so the Meta API key never leaves the Mac.
+
+**Tour of the screens** (52 s, real screen recordings of the current app in the iOS simulator; the glasses are
+simulated; made with `scripts/make_app_tour.py`):
+
+<!-- app tour video (results/walkthrough/app_tour.mp4), uploaded through GitHub's editor -->
 
 What plays the glasses (Settings, gear on Record):
 
@@ -118,8 +114,10 @@ Settings also holds the server URL (with a connection test) and the creator name
 | Building | The server job's stages: upload → transcribe → read on-screen text → split into steps → write instructions |
 | Draft | Meta AI's title, summary and steps; the instructor edits a step's words or re-cuts its start/end |
 | Publish | Title, category and description arrive filled in ("AI suggested"); Public or Private |
-| Feed | Public guides, newest first, by category; like and save |
-| Guide · Step player | A trainee's view: each step's clip loops with its instruction, "done when" and the instructor's quote |
+| Feed | Public guides by category, each card with its cover, step count and length; like and save |
+| Story | Tapping a card opens the guide as a story: a summary (step covers flip behind it, then step 1 starts by itself), one looping clip per step with its instruction, "done when" and the instructor's quote, then a done page. Tap left/right for the previous/next step, the middle to pause, hold to pause, drag the bottom edge to scrub; swipe up or down for the next guide |
+| Guide · Step player | The whole step list, and each step's clip on its own (opened from a story's Steps button or the Library) |
+| Profile | Tapping an author's name shows their public guides; yours is laid out like the Library |
 | Lens mode | Sends the current step to Meta Ray-Ban Display glasses: "Step n of N", instruction, "done when", Back / Next / Replay; the trainee can also say "next", "back" or "replay" |
 | Library | Continue where you stopped, saved guides, your own guides and who can see them |
 
@@ -138,6 +136,7 @@ Run it:
 ```bash
 scripts/make_mock_feed.sh yt_LPwPomA7BfM    # the glasses feed: a narrated first-person video (HEVC, 540x960, 30 fps)
 uv run python scripts/seed_guides.py        # optional: three demo guides in the feed
+uv run python scripts/download_feed_videos.py && uv run python scripts/seed_feed_guides.py --budget 3   # optional: the CC BY feed
 uv run uvicorn pr.server:app --port 8000    # Muse Spark builds guides; PR_BUILDER=checklist for an offline stand-in
 cd ios && xcodegen && open ProcedureReplay.xcodeproj   # then run on an iOS 26 simulator
 ```
@@ -145,7 +144,7 @@ cd ios && xcodegen && open ProcedureReplay.xcodeproj   # then run on an iOS 26 s
 Launch arguments for unattended checks, each writing a JSON result into the app's Documents folder:
 `--autorun-a3` (record → Draft), `--autorun-a5` (… → publish), `--autorun-e2e` (… → open from the Feed → play →
 Library; `PR_AUTORUN_RECORD_S` sets the recording length), `--autorun-lens` (lens mode, Next on the lens and
-by voice), `--open-guide=<id>`, `--open-draft=<id>`. `PR_SERVER` and `PR_FEED` (`phoneCamera` / `demoVideo`)
+by voice), `--open-guide=<id>`, `--open-draft=<id>`, `--open-story=<id>[:<step>]`. `PR_SERVER` and `PR_FEED` (`phoneCamera` / `demoVideo`)
 override Settings.
 
 On an iPhone: run the server with `--host 0.0.0.0` and put the Mac's address (`http://<mac-ip>:8000`) in Settings.
@@ -159,7 +158,14 @@ Two first-person scenarios, so the same pipeline covers a factory floor and a ho
 | Factory | [IndEgo](https://huggingface.co/datasets/FraunhoferIPK/IndEgo) (Fraunhofer IPK, NeurIPS 2025) | Project Aria glasses | CC BY 4.0 | `pc_repair` (Task 22, 9 steps), `drill_bit` (Task 7, 5 steps) |
 | Home | [CaptainCook4D](https://captaincook4d.github.io/captain-cook/) (UT Dallas, NeurIPS 2024) | head-mounted GoPro | Apache-2.0 | `home_cooking` (herb omelet with fried tomatoes, 15 steps) |
 
-Both come with human step labels and real mistake takes. IndEgo takes are correct (`_c_`) or mistake (`_m_`);
+Both come with human step labels and real mistake takes. They are the evaluation sets.
+
+**Feed videos.** The app's Feed holds guides built from 47 narrated first-person YouTube videos under CC BY
+(`data/feed_candidates.csv`): `download_feed_videos.py` re-checks each license in YouTube's own metadata before
+downloading, and `seed_feed_guides.py` builds and publishes each one with the app's own builder and configuration,
+credited to its real creator. Creators held out for a future narrated test set are never sent.
+
+The datasets in detail: IndEgo takes are correct (`_c_`) or mistake (`_m_`);
 CaptainCook4D takes are normal or error. Recipes are partial orders (you can chop the cilantro before or after
 taking the tomato), so `import_captaincook.py` also writes the recipe graph to `data/task_graphs/`, and
 `inject.py swap` refuses to swap two steps the recipe allows in either order.
@@ -198,7 +204,17 @@ Pexels, Pixabay, Apache-2.0; never ND or NC). Why that list: [docs/HACKATHON_RUL
 ## Run
 
 ```bash
-# smoke tests (each prints PASS/FAIL with evidence)
+# guide builder evaluation (results/guide_runs/, summary in results/summary_guides_<set>.md)
+uv run python scripts/run_guides.py --set iterate               # a round of changes
+uv run python scripts/run_guides.py --set dev --runs 1,2,3      # compare configurations
+uv run python scripts/run_guides.py --set test --i-am-at-b4 --category-defs --runs 1,2,3   # held-out test, once (B4)
+uv run python scripts/run_guides.py --set iterate --dry-run     # score cached results only, no API calls
+uv run python scripts/compare_configs.py --set iterate --ref tr-ost-mute tr-noost-mute tr-ost-audio
+uv run python scripts/judge_check.py draw                       # blind human check of the judge
+for t in tests/test_build.py tests/test_contract.py tests/test_guide_eval.py tests/test_guides_api.py \
+         tests/test_simulated_capture.py tests/test_mic_audio.py; do uv run python $t; done
+
+# earlier exploration (trainee review): smoke tests (each prints PASS/FAIL with evidence)
 uv run python scripts/smoke_sam.py data/raw/<video>.mp4 --task pc_repair
 uv run python scripts/smoke_steps.py data/raw/<reference>.mp4 --task pc_repair
 uv run python scripts/smoke_cross_creator.py data/raw/<a>.mp4 data/raw/<b>.mp4 --task pc_repair
@@ -214,25 +230,47 @@ uv run python scripts/run_eval.py --set dev     # dev set: data/ground_truth_dev
 uv run python scripts/run_eval.py --set dev --runs 1,2,3   # 3 independent reviews per video + majority vote
 uv run python scripts/run_eval.py --set dev --with-audio      # experiment: review with the sound (old default)
 uv run python tests/test_score.py && uv run python tests/test_judge.py && uv run python tests/test_vote.py
-
-# guide builder evaluation (results/guide_runs/, summary in results/summary_guides_<set>.md)
-uv run python scripts/run_guides.py --set iterate               # a round of changes
-uv run python scripts/run_guides.py --set dev --runs 1,2,3      # compare configurations
-uv run python scripts/run_guides.py --set iterate --dry-run     # score cached results only, no API calls
-uv run python scripts/compare_configs.py --set iterate --ref tr-ost-mute tr-noost-mute tr-ost-audio
-uv run python scripts/judge_check.py draw                       # blind human check of the judge
-for t in tests/test_build.py tests/test_contract.py tests/test_guide_eval.py tests/test_guides_api.py \
-         tests/test_simulated_capture.py tests/test_mic_audio.py; do uv run python $t; done
 ```
 
-**Dev / test split.** Prompts and pipeline changes are tuned on the dev set only: flaws injected into
+Every API call is logged with tokens/frames and estimated cost to `results/costs.csv`.
+
+## Earlier exploration: reviewing a trainee's video
+
+Before the guide builder, the first days went into the reverse problem: given a guide, check a trainee's own
+video and flag **skipped** or **out-of-order** steps. It is still in the repo and works end to end, but it is
+not part of the app, and its small test set (6 injected flaws) gives only exploratory numbers. The product's
+evaluation is the guide builder's, above.
+
+
+```
+expert's step names ─┐
+reference video ─► license gate ─► 5 fps proxy ─► Muse Spark 1.3 ─► checklist: steps, "done when", times
+trainee video   ─► license gate ─► 5 fps proxy ─► Muse Spark 1.3 (whole checklist, then each "not done"
+                                                  step again on its own) ─► per step: done? when? evidence
+                                                ─► judge (order rules) ─► ok / missing / out_of_order
+evaluation: edited videos with a known injected flaw (cut or swap) ─► detected X/6, false flags Y/2
+```
+
+- **Muse Spark 1.3** (Meta Model API, Responses API + JSON-schema structured output) writes the checklist
+  from the reference video and decides, for the trainee video, which steps were done and when.
+- The review sends the trainee video **without its sound**. Meta's docs say audio understanding in Muse Spark 1.3
+  is not fully supported, and on the dev set the muted review found more flaws (5.3 vs 4.0 of 9, mean of 3 runs)
+  with no more false flags. Muse Voice Transcribe found no speech in the dataset videos, so there was no
+  narration to add ([results/summary_dev_audio.md](results/summary_dev_audio.md)).
+- **SAM 3.1** (Meta Model API) is *not* part of the decision: smoke tests showed it can't see small parts
+  (RAM, coin battery) on 480p glasses footage. It is used for evidence visuals (object masks) only.
+- Videos are re-encoded to a 5 fps 720p proxy with a burned-in clock, so frame index ↔ seconds is exact
+  for both models and SAM's per-frame cost stays low.
+
+Success criterion: detect the injected flaw in ≥5 of 6 edited videos, with 0 false flags on 2 unedited videos.
+
+**Dev / test split (trainee review).** Prompts and pipeline changes are tuned on the dev set only: flaws injected into
 *other* takes (`uv run python -m pr.inject --set dev ...`). The held-out test set (6 flaws + 2 clean videos)
 is re-scored only to report results. Videos of both sets and their source takes are excluded from
 learning order rules.
 
-Every API call is logged with tokens/frames and estimated cost to `results/costs.csv`.
 
-## What the evaluation does and doesn't show
+### What this evaluation does and doesn't show
 
 - **Scope.** The expert gives the step *names* (the dataset's keystep labels); Muse Spark writes each step's
   description, "done when" and timing from the reference video, then reviews trainee videos. This tests
@@ -261,7 +299,8 @@ Guide is for.
 
 ## Built during the hackathon
 
-All code in this repository was written Oct 26 – Nov 4, 2026, starting from an empty repo.
+All code in this repository was written Oct 26 – Nov 4, 2026, starting from an empty repo (day 1 = Oct 26).
+The commit history shows when each piece landed.
 
 | Component | What it does | Status |
 | --- | --- | --- |
@@ -278,14 +317,16 @@ All code in this repository was written Oct 26 – Nov 4, 2026, starting from an
 | `scripts/smoke_*.py` | API smoke tests | day 1 |
 | `src/pr/score.py`, `tests/test_*.py` | Scoring rule (detected / false flag / extra flags) + checks for scoring, judging, voting | day 1–2 |
 | `scripts/run_eval.py` | Runs the pipeline and scores it against the dev or test ground truth; per run, first pass vs re-check, and vote | day 1–2 |
-| `src/pr/server.py`, `src/pr/guides.py` | Local HTTP server for the iPhone app: recording upload through the license gate (and the simulated glasses capture), build jobs, guides (contract v1), Draft edits and re-cuts, publish, feed, likes, saves, library, step clips and covers, feed transcripts, phone mic track merge | day 2–4 |
+| `src/pr/server.py`, `src/pr/guides.py` | Local HTTP server for the iPhone app: recording upload through the license gate (and the simulated glasses capture), build jobs, guides (contract v1), Draft edits and re-cuts, publish, feed, likes, saves, library, profiles, step clips cut ahead and versioned covers, feed transcripts, phone mic track merge | day 2–9 |
 | `src/pr/transcribe.py` | Muse Voice Transcribe: narration turns with times | day 2 |
 | `src/pr/build.py` | One-call guide builder (app recordings and evaluation) with post-processing and quote check | day 3 |
 | `src/pr/guide_eval.py`, `src/pr/guide_judge.py` | Guide scoring against step labels (step hit F1, IoU F1, boundaries, clip focus) and the per-step Muse Spark judge | day 3 |
 | `scripts/run_guides.py`, `scripts/compare_configs.py`, `scripts/judge_check.py` | Guide evaluation runs with baselines, paired config comparison, blind human check of the judge | day 3–4 |
 | `ios/` | iPhone app: glasses capture (MockDeviceKit or the iPhone's camera + mic), live captions and glasses taps, Record → Building → Draft → Publish, Feed, Guide and Step player, Display lens mode with voice commands, Library, Settings | day 2–4 |
+| `ios/ProcedureReplay/StoryView.swift`, `ProfileView.swift`, `RemoteImage.swift` | Story feed (summary with flipping covers, looping step clips, tap/hold/scrub, swipe between guides), author profiles, on-phone clip and image caches; Firsthand name and icon | day 6–9 |
 | `scripts/make_mock_feed.sh`, `scripts/seed_guides.py` | Glasses feed from a licensed video; demo guides | day 2–3 |
-| `scripts/render_demo.py` | Annotated demo video + results table | TODO |
+| `scripts/download_feed_videos.py`, `scripts/seed_feed_guides.py` | Feed of 47 CC BY guides: license re-check, download, build with the app's builder, publish to the real creator | day 7–8 |
+| `scripts/make_results_chart.py`, `scripts/make_readme_hero.py`, `scripts/make_app_icon.swift` | README results chart, README video, app icon | day 6–7 |
 
 ## Third-party
 
@@ -305,6 +346,8 @@ All code in this repository was written Oct 26 – Nov 4, 2026, starting from an
 | [Meta Wearables Device Access Toolkit](https://github.com/facebook/meta-wearables-dat-ios) | [Meta Wearables Developer Terms](https://wearables.developer.meta.com/terms) | Glasses camera, speech, inputs, Display lens (iOS) |
 | [FFmpeg](https://ffmpeg.org) (CLI, not bundled) | LGPL/GPL | Proxy encoding, cuts, swaps |
 | [uv](https://github.com/astral-sh/uv) | Apache-2.0 / MIT | Environment management |
+| [yt-dlp](https://github.com/yt-dlp/yt-dlp) (CLI, not bundled) | Unlicense | Downloads the Feed's CC BY videos after the license check |
+| [Remotion](https://www.remotion.dev) | Remotion License (free for individuals) | Editing the demo and README videos (not part of the app) |
 
 **Models** (via [Meta Model API](https://dev.meta.ai/docs)): Muse Spark 1.3 (`muse-spark-1.3-contributor`), Muse Voice Transcribe (`muse-voice-transcribe-1.0`), SAM 3.1 (`sam-3.1`).
 
@@ -312,6 +355,8 @@ All code in this repository was written Oct 26 – Nov 4, 2026, starting from an
 CC BY 4.0, recorded on Project Aria glasses. Keystep and mistake labels are IndEgo's.
 [CaptainCook4D](https://captaincook4d.github.io/captain-cook/), Peddi et al. (NeurIPS 2024 Datasets & Benchmarks),
 Apache-2.0 videos; step, error and task-graph labels from [CaptainCook4D/annotations](https://github.com/CaptainCook4D/annotations) (MIT).
+Feed videos: 47 narrated first-person YouTube videos under CC BY (creators credited in the app and in
+ATTRIBUTION.md). Music in the videos: Soundsurfer, "Stylish Hip Hop" (Pixabay Content License).
 Per-video list and our edits: [ATTRIBUTION.md](ATTRIBUTION.md).
 
 ## License

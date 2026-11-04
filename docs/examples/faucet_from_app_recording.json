@@ -1,0 +1,272 @@
+{
+  "contract_version": 1,
+  "guide_id": "g_ae789a607ab8",
+  "source_video_id": "app_rec_ae789a607ab8",
+  "duration_s": 78.2,
+  "language": "en",
+  "title": "Fix a dripping bathroom sink faucet",
+  "summary": "Disassemble a two-handle bathroom sink faucet to replace the worn cartridge, spring and rubber seat that cause dripping. Shut off the water supply valves under the sink first to avoid flooding.",
+  "category": "repair_maintenance",
+  "category_alternatives": [],
+  "tools": [
+    "adjustable wrench",
+    "hex key set",
+    "pick"
+  ],
+  "steps": [
+    {
+      "index": 1,
+      "title": "Turn off water supply",
+      "instruction": "Reach under the sink and turn the water supply valve clockwise until it stops. Repeat for the other side if needed.",
+      "done_when": "both supply valves under the sink are fully closed and no water flows",
+      "start_s": 6.4,
+      "end_s": 11.4,
+      "clip": {
+        "start_s": 5.4,
+        "end_s": 12.4
+      },
+      "cover_s": 8.9,
+      "key_objects": [
+        "supply valve"
+      ],
+      "quote": null,
+      "on_screen_text": []
+    },
+    {
+      "index": 2,
+      "title": "Remove faucet handle",
+      "instruction": "Insert the hex key into the set screw on the side of the handle and loosen it. Lift the handle straight off.",
+      "done_when": "the handle is lifted off and the white stem is exposed",
+      "start_s": 12.4,
+      "end_s": 15.6,
+      "clip": {
+        "start_s": 11.4,
+        "end_s": 16.6
+      },
+      "cover_s": 14.0,
+      "key_objects": [
+        "hex key",
+        "faucet handle"
+      ],
+      "quote": null,
+      "on_screen_text": []
+    },
+    {
+      "index": 3,
+      "title": "Remove packing nut",
+      "instruction": "Fit the adjustable wrench on the packing nut and turn counterclockwise to loosen it. Unscrew the nut the rest of the way by hand and remove it.",
+      "done_when": "the packing nut is free from the faucet body",
+      "start_s": 16.6,
+      "end_s": 24.6,
+      "clip": {
+        "start_s": 15.600000000000001,
+        "end_s": 25.6
+      },
+      "cover_s": 20.6,
+      "key_objects": [
+        "adjustable wrench",
+        "packing nut"
+      ],
+      "quote": {
+        "text": "loosen and remove the nut",
+        "turn_ids": [
+          1
+        ],
+        "start_s": 20.26,
+        "end_s": 24.46
+      },
+      "on_screen_text": []
+    },
+    {
+      "index": 4,
+      "title": "Pull out cartridge",
+      "instruction": "Grip the white plastic stem and pull straight up to lift the cartridge out of the faucet body.",
+      "done_when": "the cartridge is out and the valve cavity is empty",
+      "start_s": 25.6,
+      "end_s": 29.6,
+      "clip": {
+        "start_s": 24.6,
+        "end_s": 30.6
+      },
+      "cover_s": 27.6,
+      "key_objects": [
+        "cartridge"
+      ],
+      "quote": {
+        "text": "remove the cartridge",
+        "turn_ids": [
+          2
+        ],
+        "start_s": 25.42,
+        "end_s": 27.45
+      },
+      "on_screen_text": []
+    },
+    {
+      "index": 5,
+      "title": "Extract seat and spring",
+      "instruction": "Use a small pick to hook the black rubber seat in the valve cavity and pull it out. Hook the metal spring underneath and pull it out.",
+      "done_when": "the old seat and spring are out and set aside for matching",
+      "start_s": 30.6,
+      "end_s": 38.6,
+      "clip": {
+        "start_s": 29.6,
+        "end_s": 39.6
+      },
+      "cover_s": 34.6,
+      "key_objects": [
+        "pick",
+        "rubber seat",
+        "spring"
+      ],
+      "quote": null,
+      "on_screen_text": []
+    },
+    {
+      "index": 6,
+      "title": "Install new spring and gasket",
+      "instruction": "Drop the new spring into the hole in the faucet body. Press the new black rubber gasket over it so it seats flat.",
+      "done_when": "the new spring and rubber seat sit down in the valve cavity",
+      "start_s": 52.2,
+      "end_s": 61.2,
+      "clip": {
+        "start_s": 51.2,
+        "end_s": 62.2
+      },
+      "cover_s": 56.7,
+      "key_objects": [
+        "spring",
+        "rubber seat"
+      ],
+      "quote": {
+        "text": "Now it's time to install the new spring and gasket in place.",
+        "turn_ids": [
+          3
+        ],
+        "start_s": 52.22,
+        "end_s": 55.9
+      },
+      "on_screen_text": []
+    },
+    {
+      "index": 7,
+      "title": "Insert cartridge and tighten nut",
+      "instruction": "Push the new cartridge down into the faucet body. Thread the packing nut on by hand, then tighten it securely with the adjustable wrench.",
+      "done_when": "the cartridge is seated and the packing nut is tight and secure",
+      "start_s": 62.4,
+      "end_s": 66.8,
+      "clip": {
+        "start_s": 61.4,
+        "end_s": 67.8
+      },
+      "cover_s": 64.6,
+      "key_objects": [
+        "cartridge",
+        "packing nut",
+        "adjustable wrench"
+      ],
+      "quote": {
+        "text": "Insert the new cartridge, reinstall the packing nut and tighten tighten it securely",
+        "turn_ids": [
+          4
+        ],
+        "start_s": 62.54,
+        "end_s": 67.44
+      },
+      "on_screen_text": []
+    },
+    {
+      "index": 8,
+      "title": "Reattach handle and restore water",
+      "instruction": "Set the handle back on the stem and tighten its set screw with the hex key. Reach under the sink and turn the supply valve back on.",
+      "done_when": "the handle is fixed on the stem and the supply valves are open",
+      "start_s": 67.2,
+      "end_s": 69.0,
+      "clip": {
+        "start_s": 66.2,
+        "end_s": 70.0
+      },
+      "cover_s": 68.1,
+      "key_objects": [
+        "faucet handle",
+        "hex key",
+        "supply valve"
+      ],
+      "quote": {
+        "text": "reattach the handle and turn back on the on the water.",
+        "turn_ids": [
+          4
+        ],
+        "start_s": 67.44,
+        "end_s": 70.62
+      },
+      "on_screen_text": []
+    },
+    {
+      "index": 9,
+      "title": "Test for drips",
+      "instruction": "Turn the handle on to flush, then turn it fully off. Watch the spout to confirm there is no drip.",
+      "done_when": "the faucet shuts off fully with no drip from the spout",
+      "start_s": 69.8,
+      "end_s": 76.0,
+      "clip": {
+        "start_s": 68.8,
+        "end_s": 77.0
+      },
+      "cover_s": 72.9,
+      "key_objects": [
+        "faucet handle"
+      ],
+      "quote": {
+        "text": "Check to make sure there is no drip",
+        "turn_ids": [
+          5
+        ],
+        "start_s": 72.78,
+        "end_s": 77.66
+      },
+      "on_screen_text": [
+        "No More Drip"
+      ]
+    }
+  ],
+  "inputs_provided": {
+    "video": true,
+    "transcript": true,
+    "on_screen_text": true,
+    "audio": false,
+    "step_names": false
+  },
+  "provenance": {
+    "model": "muse-spark-1.3-contributor",
+    "prompt_version": "b2-v1",
+    "config": {
+      "transcript": true,
+      "on_screen_text": true,
+      "audio": false,
+      "seed_names": null,
+      "model": null,
+      "category_defs": true,
+      "refine": false,
+      "refine_split": true
+    },
+    "builder": "pr.build",
+    "created_at": "2026-11-02T01:42:56+00:00",
+    "transcriber": "muse-voice-transcribe-1.0",
+    "transcript_id": "results/transcripts/app_rec_ae789a607ab8.json",
+    "dropped_quotes": [
+      {
+        "index": 1,
+        "reason": "quoted words fall outside the clip"
+      },
+      {
+        "index": 2,
+        "reason": "quoted words fall outside the clip"
+      },
+      {
+        "index": 5,
+        "reason": "quoted words fall outside the clip"
+      }
+    ]
+  }
+}
