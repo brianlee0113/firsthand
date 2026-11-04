@@ -1,6 +1,7 @@
 # Hackathon rules that constrain this build
 
-Event: Meta Global AI Developer Hackathon, indie track, theme "Push the Frontier" (manufacturing).
+Event: Meta Global AI Developer Hackathon, Indie Developer track, theme "Build for Your World" (changed from "Push the Frontier" on Nov 4, before
+submission).
 Build window: Oct 26 – Nov 4, 2026. Submission due Nov 4, 2026, 9:00 PM ET.
 
 ## Official rules (verbatim, received Oct 26, 2026)

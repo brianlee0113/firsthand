@@ -1,5 +1,10 @@
 # Firsthand
 
+**See how it's done, firsthand.**
+
+Hands-on knowledge is often left undocumented or buried in long videos. For someone trying to do the task,
+finding the right action at the right moment is difficult, especially when their hands are busy.
+
 **Firsthand turns an expert's hands-on know-how into a guide anyone can follow** — perfect use case for Meta Glasses and Muse Spark!
 
 - 🥽 **Record by doing.** Wear Meta glasses, do the job and say what you're doing. No script, no editing.
@@ -24,7 +29,8 @@ Formerly ProcedureReplay: the Python package `pr`, the Xcode target and the bund
   and one Muse Spark call; the most was $0.036 and 158 s).
 - **Beats an equal-length-cuts baseline on 28 of 30 held-out test videos**, scored against human step labels on
   factory (PC repair, drill bit) and kitchen footage: step hit F1 0.35 vs 0.19, 0.71 vs 0.34, 0.49 vs 0.19
-  ([Guide builder and its evaluation](#guide-builder-and-its-evaluation)).
+  (model-judged, with a blind human spot check;
+  [Guide builder and its evaluation](#guide-builder-and-its-evaluation)).
 - Real outputs, unedited: [docs/examples/](docs/examples/).
 
 Meta's multimodal model (Muse Spark, with Muse Voice Transcribe for the narration) splits the recording into
@@ -33,10 +39,7 @@ cuts one looping clip per step. The instructor reviews the draft, publishes it a
 guides appear in a feed where people can like and save them. The same app covers factory work (repairing a PC,
 changing a drill bit) and everyday tasks (cooking, fixing a faucet).
 
-An earlier part of the project, still in this repo, checks a trainee's own video against a guide and flags
-**skipped** or **out-of-order** steps ([Earlier exploration](#earlier-exploration-reviewing-a-trainees-video)).
-
-Built for the Meta Global AI Developer Hackathon (indie track, "Push the Frontier", manufacturing),
+Built for the Meta Global AI Developer Hackathon (Indie Developer track, theme "Build for Your World"),
 Oct 26 – Nov 4, 2026.
 
 ## Guide builder and its evaluation
@@ -93,8 +96,8 @@ that choice.
 
 **Checking the judge.** The judge is the builder's own model, so `scripts/judge_check.py` draws 30 items for a
 blind human check ([results/judge_check/dev/agreement.txt](results/judge_check/dev/agreement.txt)). Every one
-of the 15 disagreements was the judge saying No where the human said Yes, so the scores above are, if anything,
-too low. "Same action" and "done when is observable" disagree 15% or more in every domain, so those two scores
+of the 15 disagreements was the judge saying No where the human said Yes: the spot check found only false
+negatives, no step the judge accepted and the human rejected. "Same action" and "done when is observable" disagree 15% or more in every domain, so those two scores
 need more human review before they can be trusted alone.
 
 ## Setup
