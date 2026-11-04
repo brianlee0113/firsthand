@@ -96,6 +96,8 @@ SwiftUI, iOS 26 (Liquid Glass), with the [Meta Wearables Device Access Toolkit](
 **Tour of the screens** (52 s, real screen recordings of the current app in the iOS simulator; the glasses are
 simulated; made with `scripts/make_app_tour.py`):
 
+https://github.com/user-attachments/assets/8d7821e9-a168-4910-b314-ab69b007439f
+
 <!-- app tour video (results/walkthrough/app_tour.mp4), uploaded through GitHub's editor -->
 
 What plays the glasses (Settings, gear on Record):
